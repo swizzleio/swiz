@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"getswizzle.io/swiz/pkg/network"
 	"golang.org/x/crypto/ssh"
-	"io"
 	"log"
 	"net"
 )
@@ -31,39 +30,15 @@ func waitForNewConn(listener net.Listener, c chan net.Conn, errorChan chan error
 	}
 }
 
-func copyConn(writer, reader net.Conn, errorChan chan error) {
-	_, err := io.Copy(writer, reader)
-	if err != nil {
-		errorChan <- err
-	}
-}
-
 // forwardConn glues the two connections together
 func (t *Tunnel) forwardConn(localConn net.Conn) {
-	serverConn, err := ssh.Dial("tcp", t.Server.String(), t.Config)
+	conn := NewConnection(localConn, t.errorChan)
+	err := conn.Forward(t.Server.String(), t.Remote.String(), t.Config)
 	if err != nil {
-		log.Printf("server dial error: %s\n", err)
-		return
+		t.errorChan <- err
+	} else {
+		t.connChan <- conn
 	}
-	log.Printf("connected to %s (1 of 2)\n", t.Server.String())
-	remoteConn, err := serverConn.Dial("tcp", t.Remote.String())
-	if err != nil {
-		log.Printf("remote dial error: %s\n", err)
-		return
-	}
-
-	t.connChan <- &Connection{
-		Local:  localConn,
-		Remote: remoteConn,
-		Server: serverConn,
-	}
-
-	log.Printf("connected to %s (2 of 2)\n", t.Remote.String())
-
-	go copyConn(localConn, remoteConn, t.errorChan)
-	go copyConn(remoteConn, localConn, t.errorChan)
-
-	return
 }
 
 // Start starts the SSH tunnel

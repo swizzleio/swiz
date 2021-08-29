@@ -3,6 +3,8 @@ package ssh
 import (
 	"fmt"
 	"golang.org/x/crypto/ssh"
+	"io"
+	"log"
 	"net"
 	"strings"
 )
@@ -42,9 +44,48 @@ func (e ConnError) HasValue() bool {
 }
 
 type Connection struct {
-	Local  net.Conn
-	Remote net.Conn
-	Server *ssh.Client
+	Local     net.Conn
+	Remote    net.Conn
+	Server    *ssh.Client
+	errorChan chan error
+}
+
+func NewConnection(localConn net.Conn, errorChan chan error) *Connection {
+	return &Connection{
+		Local:     localConn,
+		errorChan: errorChan,
+	}
+}
+
+// copyConn copies the io from the connections
+func (s *Connection) copyConn(writer, reader net.Conn) {
+	_, err := io.Copy(writer, reader)
+	if err != nil {
+		s.errorChan <- err
+	}
+}
+
+// Forward starts forwarding connections bidirectionally
+func (s *Connection) Forward(serverAddr string, remoteAddr string, cfg *ssh.ClientConfig) error {
+	serverConn, err := ssh.Dial("tcp", serverAddr, cfg)
+	if err != nil {
+		log.Printf("server dial error: %s\n", err)
+		return err
+	}
+	log.Printf("connected to %s (1 of 2)\n", serverAddr)
+	remoteConn, err := serverConn.Dial("tcp", remoteAddr)
+	if err != nil {
+		log.Printf("remote dial error: %s\n", err)
+		return err
+	}
+
+	s.Remote = remoteConn
+	s.Server = serverConn
+
+	go s.copyConn(s.Local, remoteConn)
+	go s.copyConn(remoteConn, s.Local)
+
+	return nil
 }
 
 // Close closes the connection
