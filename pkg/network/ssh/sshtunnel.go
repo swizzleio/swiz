@@ -96,8 +96,8 @@ func (t *Tunnel) Close() {
 	return
 }
 
-// NewSSHTunnel creates a new single-use tunnel. To use a random port, specify 0 for local port
-func NewSSHTunnel(tunnel string, auth ssh.AuthMethod, destination string, localport int) *Tunnel {
+// NewSshTunnel creates a new single-use tunnel. To use a random port, specify 0 for local port
+func NewSshTunnel(tunnel string, auth ssh.AuthMethod, destination string, localport int) *Tunnel {
 
 	localEndpoint := network.NewEndpointFromHostString(fmt.Sprintf("localhost:%v", localport))
 
