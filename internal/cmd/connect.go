@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"getswizzle.io/swiz/pkg/infra/aws"
 	"getswizzle.io/swiz/pkg/network/ssh"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func init() {
@@ -30,13 +32,46 @@ func init() {
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     "host",
-				Aliases:  []string{"h"},
-				Usage:    "remote host to tunnel to",
+				Name:     "connect",
+				Aliases:  []string{"c"},
+				Usage:    "remote endpoint to tunnel to",
 				Required: true,
 			},
 		},
 	})
+}
+
+func launchTunnel(tun *ssh.Tunnel) {
+	cCtx, cancel := context.WithCancel(context.Background())
+	exitCh := make(chan struct{})
+	go func(ctx context.Context) {
+		err := tun.Start()
+		if err != nil {
+			log.Fatalf("starting tunnel %v", err)
+		}
+
+		select {
+		case <-ctx.Done():
+			log.Printf("exiting...")
+			exitCh <- struct{}{}
+		default: // to make this non blocking
+		}
+	}(cCtx)
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGKILL)
+
+	go func() {
+		select {
+		case <-sigCh:
+			cancel()
+			return
+		}
+	}()
+
+	time.Sleep(500 * time.Millisecond) // TODO: Poll for channel
+
+	<-exitCh
 }
 
 // connectCmd runs the connect command
@@ -44,7 +79,7 @@ func connectCmd(ctx *cli.Context) error {
 	fmt.Printf("Connecting to host\n")
 	bastion := ctx.String("bastion")
 	key := ctx.String("key")
-	host := ctx.String("host")
+	host := ctx.String("connect")
 
 	// Dump info
 	aws.InitService()
@@ -57,19 +92,7 @@ func connectCmd(ctx *cli.Context) error {
 	}
 	tun := ssh.NewSshTunnel(bastion, keyAuth.GetAuthMethod(), host, 0)
 
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		err = tun.Start()
-		if err != nil {
-			log.Fatalf("starting tunnel %v", err)
-		}
-
-		// Run Cleanup
-		tun.Close()
-		os.Exit(1)
-	}()
+	launchTunnel(tun)
 
 	return nil
 }
