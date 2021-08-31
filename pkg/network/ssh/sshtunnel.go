@@ -54,7 +54,7 @@ func (t *Tunnel) Start() error {
 
 		c := make(chan net.Conn)
 		go waitForNewConn(listener, c, t.errorChan)
-		log.Printf("listening...\n")
+		log.Printf("listening on port %v\n", t.Local.Port)
 
 		select {
 		case sshConn := <-t.connChan:
