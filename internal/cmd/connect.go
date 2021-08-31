@@ -53,6 +53,7 @@ func launchTunnel(tun *ssh.Tunnel) {
 		select {
 		case <-ctx.Done():
 			log.Printf("exiting...")
+			tun.Close()
 			exitCh <- struct{}{}
 		default: // to make this non blocking
 		}
