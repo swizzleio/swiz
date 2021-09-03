@@ -3,9 +3,9 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"getswizzle.io/swiz/pkg/clihelper"
 	"getswizzle.io/swiz/pkg/infra"
 	"getswizzle.io/swiz/pkg/network/ssh"
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
@@ -82,48 +82,6 @@ func launchTunnel(tun *ssh.Tunnel) {
 	<-exitCh
 }
 
-func getOrPrompt(ctx *cli.Context, key string, promptMessage string, options map[string]string, backOption string) string {
-
-	// Check to see if the value was passed in
-	val := ctx.String(key)
-	if val != "" {
-		return val
-	}
-
-	// Build the question
-	optionList := []string{}
-	for k := range options {
-		optionList = append(optionList, k)
-	}
-
-	// Check to see if there needs to be a back option
-	if backOption != "" {
-		optionList = append(optionList, backOption)
-	}
-	question := []*survey.Question{
-		{
-			Name: "input",
-			Prompt: &survey.Select{
-				Message:  promptMessage,
-				Options:  optionList,
-				PageSize: 35,
-			},
-		},
-	}
-
-	answers := struct {
-		Input string
-	}{}
-
-	// Ask
-	err := survey.Ask(question, &answers)
-	if err != nil {
-		log.Fatalf("launching prompt. %v", err)
-	}
-
-	return options[answers.Input]
-}
-
 // connectCmd runs the connect command
 func connectCmd(ctx *cli.Context) error {
 	fmt.Printf("Connecting to host\n")
@@ -139,7 +97,8 @@ func connectCmd(ctx *cli.Context) error {
 
 	services := svc.ListServices()
 
-	service := getOrPrompt(ctx, "service", "Select the service that you would like to connect to", services, "Quit")
+	service := clihelper.GetOrPromptOptions(ctx, "service", "Select the service that you would like to connect to",
+		services, "Quit")
 	if service == "" {
 		// Quit
 		return nil
@@ -154,7 +113,7 @@ func connectCmd(ctx *cli.Context) error {
 	for k, v := range hosts {
 		hostMap[v.String()] = k
 	}
-	host = getOrPrompt(ctx, "connect", "Select the host that you want to connect to", hostMap, "Quit")
+	host = clihelper.GetOrPromptOptions(ctx, "connect", "Select the host that you want to connect to", hostMap, "Quit")
 	if host == "" {
 		// Quit
 		return nil
