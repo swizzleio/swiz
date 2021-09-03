@@ -2,51 +2,133 @@ package aws
 
 import (
 	"context"
-	"github.com/aws/aws-sdk-go-v2/config"
+	"getswizzle.io/swiz/pkg/infra/model"
+	"getswizzle.io/swiz/pkg/network"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"log"
 )
 
-// ListEc2 lists all the EC2 instances
-func ListEc2() {
-	// Load the Shared AWS Configuration (~/.aws/config)
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		log.Fatal(err)
-	}
+const DefaultPlatform = "Linux"
+const DefaultPlatformTagName = "Os"
 
-	// Create an Amazon EC2 service client
-	client := ec2.NewFromConfig(cfg)
+type Ec2 struct {
+	client       *ec2.Client
+	portMappings map[string]int
+	userMappings map[string]string
+}
+
+func NewEc2(cfg aws.Config) Ec2 {
+	return Ec2{
+		client: ec2.NewFromConfig(cfg),
+		portMappings: map[string]int{
+			"Windows": 3389,
+			"Linux":   22,
+			"*":       22,
+		},
+		userMappings: map[string]string{
+			"Windows": "Administrator",
+			"Linux":   "root",
+			"*":       "root",
+		},
+	}
+}
+
+// ListInstances lists all the EC2 instances and returns a mapping by unique id
+func (e Ec2) ListInstances() (map[string]model.TargetInstance, error) {
 
 	// Describe EC2 instances with paginator
-	params := &ec2.DescribeInstancesInput{}
+	instances := map[string]model.TargetInstance{}
 
-	paginator := ec2.NewDescribeInstancesPaginator(client, params)
+	params := &ec2.DescribeInstancesInput{}
+	paginator := ec2.NewDescribeInstancesPaginator(e.client, params)
 
 	for paginator.HasMorePages() {
 		output, err := paginator.NextPage(context.TODO())
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 
+		// Iterate across all of the returned reservations and instances
 		for _, instanceRes := range output.Reservations {
 			for _, instance := range instanceRes.Instances {
 				name := getTagValue("Name", instance.Tags)
-				plat := getPlatformType("Os", instance)
-				log.Printf("%v (%v): %v %v %v\n", name, instance.InstanceId, plat, strOrEmpty(instance.PrivateIpAddress),
-					strOrEmpty(instance.PublicIpAddress))
+				plat := e.getPlatformType(DefaultPlatformTagName, DefaultPlatform, instance)
+				port := e.getRemoteAccessPort(plat)
+				user := e.getUser(plat)
+				//log.Printf("%v (%v): %v %v %v\n", name, instance.InstanceId, plat, strOrEmpty(instance.PrivateIpAddress),
+				//	strOrEmpty(instance.PublicIpAddress))
+
+				vm := model.TargetInstance{
+					Id:        strOrEmpty(instance.InstanceId),
+					Name:      name,
+					Os:        plat,
+					Endpoints: []network.Endpoint{},
+				}
+
+				private := e.getEndpoint(instance.PrivateIpAddress, port, user)
+				public := e.getEndpoint(instance.PublicIpAddress, port, user)
+				if private != nil {
+					vm.Endpoints = append(vm.Endpoints, *private)
+				}
+				if public != nil {
+					vm.Endpoints = append(vm.Endpoints, *public)
+				}
+
+				instances[vm.Id] = vm
+
 			}
 		}
 	}
+
+	return instances, nil
+}
+
+// getEndpoint returns an endpoint on a valid ip address
+func (e Ec2) getEndpoint(ip *string, port int, user string) *network.Endpoint {
+	if ip == nil {
+		return nil
+	}
+
+	endpoint := network.NewEndpointFromHostString(*ip)
+	endpoint.Port = port
+	endpoint.User = user
+
+	return &endpoint
+}
+
+// getRemoteAccessPort returns the remote access port
+func (e Ec2) getRemoteAccessPort(plat string) int {
+	// Get port mapping for remote access
+	port := e.portMappings[plat]
+	if port == 0 {
+		port = e.portMappings["*"]
+	}
+
+	return port
+}
+
+// getUser returns the remote access username
+func (e Ec2) getUser(plat string) string {
+	// Get username mapping for remote access
+	user := e.userMappings[plat]
+	if user == "" {
+		user = e.userMappings["*"]
+	}
+
+	return user
 }
 
 // getPlatformType returns the platform type based on an instance value or a tag value
-func getPlatformType(platformTypeTag string, instance types.Instance) string {
+func (e Ec2) getPlatformType(platformTypeTag string, defaultPlatform string, instance types.Instance) string {
 	platType := string(instance.Platform)
 	if platType == "" &&
 		platformTypeTag != "" {
-		return getTagValue(platformTypeTag, instance.Tags)
+		platType = getTagValue(platformTypeTag, instance.Tags)
+	}
+
+	if platType == "" {
+		platType = defaultPlatform
 	}
 
 	return platType
