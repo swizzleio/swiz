@@ -3,8 +3,9 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"getswizzle.io/swiz/pkg/infra/aws"
+	"getswizzle.io/swiz/pkg/infra"
 	"getswizzle.io/swiz/pkg/network/ssh"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
@@ -35,7 +36,13 @@ func init() {
 				Name:     "connect",
 				Aliases:  []string{"c"},
 				Usage:    "remote endpoint to tunnel to",
-				Required: true,
+				Required: false,
+			},
+			&cli.StringFlag{
+				Name:     "service",
+				Aliases:  []string{"s"},
+				Usage:    "service to use",
+				Required: false,
 			},
 		},
 	})
@@ -75,6 +82,48 @@ func launchTunnel(tun *ssh.Tunnel) {
 	<-exitCh
 }
 
+func getOrPrompt(ctx *cli.Context, key string, promptMessage string, options map[string]string, backOption string) string {
+
+	// Check to see if the value was passed in
+	val := ctx.String(key)
+	if val != "" {
+		return val
+	}
+
+	// Build the question
+	optionList := []string{}
+	for k := range options {
+		optionList = append(optionList, k)
+	}
+
+	// Check to see if there needs to be a back option
+	if backOption != "" {
+		optionList = append(optionList, backOption)
+	}
+	question := []*survey.Question{
+		{
+			Name: "input",
+			Prompt: &survey.Select{
+				Message:  promptMessage,
+				Options:  optionList,
+				PageSize: 35,
+			},
+		},
+	}
+
+	answers := struct {
+		Input string
+	}{}
+
+	// Ask
+	err := survey.Ask(question, &answers)
+	if err != nil {
+		log.Fatalf("launching prompt. %v", err)
+	}
+
+	return options[answers.Input]
+}
+
 // connectCmd runs the connect command
 func connectCmd(ctx *cli.Context) error {
 	fmt.Printf("Connecting to host\n")
@@ -82,12 +131,39 @@ func connectCmd(ctx *cli.Context) error {
 	key := ctx.String("key")
 	host := ctx.String("connect")
 
-	// Dump info
-	aws.InitService()
+	// Create the infra services and determine which service to use
+	svc, err := infra.NewInfraService()
+	if err != nil {
+		log.Fatalf("creating infrastructure service. %v", err)
+	}
+
+	services := svc.ListServices()
+
+	service := getOrPrompt(ctx, "service", "Select the service that you would like to connect to", services, "Quit")
+	if service == "" {
+		// Quit
+		return nil
+	}
+	log.Printf("Fetching instances from %v", service)
+
+	hosts, err := svc.GetInstances(service)
+	if err != nil {
+		log.Fatalf("error fetching instances: %v", err)
+	}
+	hostMap := map[string]string{}
+	for k, v := range hosts {
+		hostMap[v.String()] = k
+	}
+	host = getOrPrompt(ctx, "connect", "Select the host that you want to connect to", hostMap, "Quit")
+	if host == "" {
+		// Quit
+		return nil
+	}
+	log.Printf("%v", host)
 
 	// Connect
 	keyAuth := ssh.NewPrivateKeyAuth()
-	err := keyAuth.InitFromFile(key)
+	err = keyAuth.InitFromFile(key)
 	if err != nil {
 		log.Fatalf("loading key %v", err)
 	}
