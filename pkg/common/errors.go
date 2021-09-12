@@ -7,3 +7,11 @@ type NotFoundError struct {
 func (e NotFoundError) Error() string {
 	return e.Subject + " not found"
 }
+
+type NotSupportedError struct {
+	Subject string
+}
+
+func (e NotSupportedError) Error() string {
+	return e.Subject + " not supported"
+}

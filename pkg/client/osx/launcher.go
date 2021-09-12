@@ -2,15 +2,33 @@ package osx
 
 import (
 	"bytes"
-	"getswizzle.io/swiz/pkg/client"
+	"getswizzle.io/swiz/pkg/client/model"
+	"getswizzle.io/swiz/pkg/common"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"text/template"
 )
 
-func Launch(profile client.RemoteLaunchProfile, templateStr string) error {
+type OsxClient struct {
+}
+
+// Launch launches a client based on the specified launch profile
+func (c OsxClient) Launch(profile model.RemoteLaunchProfile) error {
+	switch strings.ToLower(profile.Appname) {
+	case "rdp":
+		return c.launchOsx(profile, "/Applications/Microsoft Remote Desktop Beta.app", "rdp://full%20address=s:127.0.0.1:{{.Port}}&audiomode=i:0&disable%20themes=i:1&desktopwidth:i:{{.Width}}&desktopheight:i:{{.Height}}&screen%20mode%20id=i:1&username=s:{{.Username}}&prompt%20for%20credentials%20on%20client:i:0")
+	case "ssh":
+		return c.launchOsx(profile, "ssh", "-i {{.Keyfile}} {{.Username}}@127.0.0.1:{{.Port}}")
+	}
+
+	return common.NotSupportedError{Subject: profile.Appname}
+}
+
+// launchOsx launches a command in OSX
+func (c OsxClient) launchOsx(profile model.RemoteLaunchProfile, appName string, templateStr string) error {
 	// Generate template
 	// TODO: Sanitize template profile (specifically username)
 	tmpl, err := template.New("osxlaunch").Parse(templateStr)
@@ -23,7 +41,7 @@ func Launch(profile client.RemoteLaunchProfile, templateStr string) error {
 
 	// Create command and redirect output
 	param := templBuf.String()
-	cmd := exec.Command("command", "open", "-n", "-F", "-W", "-a", param)
+	cmd := exec.Command("command", "open", "-n", "-F", "-W", "-a", appName, param)
 	stderr, err := cmd.StderrPipe()
 	log.SetOutput(os.Stderr)
 	if err != nil {
