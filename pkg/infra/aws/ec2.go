@@ -13,24 +13,12 @@ const DefaultPlatform = "Linux"
 const DefaultPlatformTagName = "Os"
 
 type Ec2 struct {
-	client       *ec2.Client
-	portMappings map[string]int
-	userMappings map[string]string
+	client *ec2.Client
 }
 
 func NewEc2(cfg aws.Config) Ec2 {
 	return Ec2{
 		client: ec2.NewFromConfig(cfg),
-		portMappings: map[string]int{
-			"Windows": 3389,
-			"Linux":   22,
-			"*":       22,
-		},
-		userMappings: map[string]string{
-			"Windows": "Administrator",
-			"Linux":   "root",
-			"*":       "root",
-		},
 	}
 }
 
@@ -54,8 +42,6 @@ func (e Ec2) ListInstances() (map[string]model.TargetInstance, error) {
 			for _, instance := range instanceRes.Instances {
 				name := getTagValue("Name", instance.Tags)
 				plat := e.getPlatformType(DefaultPlatformTagName, DefaultPlatform, instance)
-				port := e.getRemoteAccessPort(plat)
-				user := e.getUser(plat)
 				//log.Printf("%v (%v): %v %v %v\n", name, instance.InstanceId, plat, strOrEmpty(instance.PrivateIpAddress),
 				//	strOrEmpty(instance.PublicIpAddress))
 
@@ -66,8 +52,8 @@ func (e Ec2) ListInstances() (map[string]model.TargetInstance, error) {
 					Endpoints: []network.Endpoint{},
 				}
 
-				private := e.getEndpoint(instance.PrivateIpAddress, port, user)
-				public := e.getEndpoint(instance.PublicIpAddress, port, user)
+				private := e.getEndpoint(instance.PrivateIpAddress)
+				public := e.getEndpoint(instance.PublicIpAddress)
 				if private != nil {
 					vm.Endpoints = append(vm.Endpoints, *private)
 				}
@@ -85,38 +71,14 @@ func (e Ec2) ListInstances() (map[string]model.TargetInstance, error) {
 }
 
 // getEndpoint returns an endpoint on a valid ip address
-func (e Ec2) getEndpoint(ip *string, port int, user string) *network.Endpoint {
+func (e Ec2) getEndpoint(ip *string) *network.Endpoint {
 	if ip == nil {
 		return nil
 	}
 
 	endpoint := network.NewEndpointFromHostString(*ip)
-	endpoint.Port = port
-	endpoint.User = user
 
 	return &endpoint
-}
-
-// getRemoteAccessPort returns the remote access port
-func (e Ec2) getRemoteAccessPort(plat string) int {
-	// Get port mapping for remote access
-	port := e.portMappings[plat]
-	if port == 0 {
-		port = e.portMappings["*"]
-	}
-
-	return port
-}
-
-// getUser returns the remote access username
-func (e Ec2) getUser(plat string) string {
-	// Get username mapping for remote access
-	user := e.userMappings[plat]
-	if user == "" {
-		user = e.userMappings["*"]
-	}
-
-	return user
 }
 
 // getPlatformType returns the platform type based on an instance value or a tag value
