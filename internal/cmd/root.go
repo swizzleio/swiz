@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"getswizzle.io/swiz/internal/config"
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
@@ -16,13 +15,13 @@ func addCommand(cmd *cli.Command) {
 }
 
 // Execute adds all child commands to the root command. This is called by main and is considered the main entry point.
-func Execute(cfg config.Config) {
+func Execute() {
 
 	app := &cli.App{
 		Name:     "swiz",
 		Usage:    "swiz [CMD]",
 		HelpName: `Securly swizzle your way into the cloud environment`,
-		Version:  cfg.Version,
+		Version:  "0.0",
 		Commands: commands,
 	}
 
