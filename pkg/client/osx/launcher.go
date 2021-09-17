@@ -15,12 +15,17 @@ import (
 type OsxClient struct {
 }
 
+// NewOsxClient returns a new OSX client
+func NewOsxClient() model.ClientLauncher {
+	return &OsxClient{}
+}
+
 // Launch launches a client based on the specified launch profile
 func (c OsxClient) Launch(profile model.RemoteLaunchProfile) error {
 	switch strings.ToLower(profile.Appname) {
-	case "rdp":
-		return c.launchOsx(profile, "/Applications/Microsoft Remote Desktop Beta.app", "rdp://full%20address=s:127.0.0.1:{{.Port}}&audiomode=i:0&disable%20themes=i:1&desktopwidth:i:{{.Width}}&desktopheight:i:{{.Height}}&screen%20mode%20id=i:1&username=s:{{.Username}}&prompt%20for%20credentials%20on%20client:i:0")
-	case "ssh":
+	case common.RemoteAccessRdp:
+		return c.launchOsx(profile, "/Applications/Microsoft Remote Desktop.app", "rdp://full%20address=s:127.0.0.1:{{.Port}}&audiomode=i:0&disable%20themes=i:1&desktopwidth:i:{{.Width}}&desktopheight:i:{{.Height}}&screen%20mode%20id=i:1&username=s:{{.Username}}&prompt%20for%20credentials%20on%20client:i:0")
+	case common.RemoteAccessSsh:
 		return c.launchOsx(profile, "ssh", "-i {{.Keyfile}} {{.Username}}@127.0.0.1:{{.Port}}")
 	}
 

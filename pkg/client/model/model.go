@@ -8,3 +8,7 @@ type RemoteLaunchProfile struct {
 	Width    int
 	Height   int
 }
+
+type ClientLauncher interface {
+	Launch(profile RemoteLaunchProfile) error
+}
