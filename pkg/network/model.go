@@ -2,6 +2,7 @@ package network
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -29,4 +30,9 @@ func NewEndpointFromHostString(s string) Endpoint {
 
 func (endpoint *Endpoint) String() string {
 	return fmt.Sprintf("%s:%d", endpoint.Host, endpoint.Port)
+}
+
+func (endpoint Endpoint) IsPrivate() bool {
+	ip := net.ParseIP(endpoint.Host)
+	return ip.IsPrivate()
 }
