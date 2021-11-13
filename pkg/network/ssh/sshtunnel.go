@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"encoding/base64"
 	"fmt"
 	"getswizzle.io/swiz/pkg/network"
 	"golang.org/x/crypto/ssh"
@@ -38,6 +39,38 @@ func (t *Tunnel) forwardConn(localConn net.Conn) {
 		t.errorChan <- err
 	} else {
 		t.connChan <- conn
+	}
+}
+
+// createKeyString converts a key to a string
+func createKeyString(k ssh.PublicKey) string {
+	return fmt.Sprintf("%s %s", k.Type(), base64.StdEncoding.EncodeToString(k.Marshal()))
+}
+
+// createKeyValidationCallback returns a key validation callback
+func createKeyValidationCallback(trustedKey string, warnOnEmpty bool) ssh.HostKeyCallback {
+
+	if trustedKey == "" {
+		if warnOnEmpty {
+			return func(_ string, _ net.Addr, k ssh.PublicKey) error {
+				log.Printf("[WARN] there is a security issue!!! The SSH key validation is empty. Add this to the config: %q", createKeyString(k))
+				return nil
+			}
+		} else {
+			return func(_ string, _ net.Addr, k ssh.PublicKey) error {
+				return fmt.Errorf("empty key. Validate the following remote key and add it to the config: %q", createKeyString(k))
+			}
+		}
+
+	}
+
+	return func(_ string, _ net.Addr, k ssh.PublicKey) error {
+		ks := createKeyString(k)
+		if trustedKey != ks {
+			return fmt.Errorf("failed key! expected %q but got %q", trustedKey, ks)
+		}
+
+		return nil
 	}
 }
 
@@ -97,7 +130,7 @@ func (t *Tunnel) Close() {
 }
 
 // NewSshTunnel creates a new single-use tunnel. To use a random port, specify 0 for local port
-func NewSshTunnel(tunnel string, auth ssh.AuthMethod, destination string, localport int) *Tunnel {
+func NewSshTunnel(tunnel string, hostKey string, auth ssh.AuthMethod, destination string, localport int) *Tunnel {
 
 	localEndpoint := network.NewEndpointFromHostString(fmt.Sprintf("localhost:%v", localport))
 
@@ -108,12 +141,9 @@ func NewSshTunnel(tunnel string, auth ssh.AuthMethod, destination string, localp
 
 	sshTunnel := &Tunnel{
 		Config: &ssh.ClientConfig{
-			User: server.User,
-			Auth: []ssh.AuthMethod{auth},
-			HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-				// Always accept key. This is very evil and creates an MITM vector. Refactor this...
-				return nil
-			},
+			User:            server.User,
+			Auth:            []ssh.AuthMethod{auth},
+			HostKeyCallback: createKeyValidationCallback(hostKey, false),
 		},
 		Local:     localEndpoint,
 		Server:    server,

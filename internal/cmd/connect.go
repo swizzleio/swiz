@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"getswizzle.io/swiz/internal/config"
-	"getswizzle.io/swiz/pkg/client"
 	"getswizzle.io/swiz/pkg/clihelper"
 	"getswizzle.io/swiz/pkg/infra"
 	"getswizzle.io/swiz/pkg/infra/model"
@@ -136,17 +135,18 @@ func connectCmd(ctx *cli.Context) error {
 	if err != nil {
 		log.Fatalf("loading key %v", err)
 	}
-	tun := ssh.NewSshTunnel(launchInfo.BastionAddr, keyAuth.GetAuthMethod(), launchInfo.HostString, 0)
+	tun := ssh.NewSshTunnel(launchInfo.BastionAddr, "", keyAuth.GetAuthMethod(), launchInfo.HostString, 0) // TODO: Add host key
 
 	exitCh := launchTunnel(tun)
 
-	// Launch app.
-	clientSvc := client.NewService()
-	err = clientSvc.Launch(launchInfo.Os, launchInfo.ClientConfig)
-	if err != nil {
-		log.Fatalf("launching client app %v", err)
-	}
-
+	/*
+		// Launch app.
+		clientSvc := client.NewService()
+		err = clientSvc.Launch(launchInfo.Os, launchInfo.ClientConfig)
+		if err != nil {
+			log.Fatalf("launching client app %v", err)
+		}
+	*/
 	// Wait for exit. TODO: Clean up these channels once end to end is working
 	<-exitCh
 
