@@ -8,9 +8,10 @@ import (
 )
 
 type Endpoint struct {
-	Host string
-	Port int
-	User string
+	Host        string
+	Port        int
+	User        string
+	FlagPrivate bool
 }
 
 func NewEndpointFromHostString(s string) Endpoint {
@@ -33,6 +34,9 @@ func (endpoint *Endpoint) String() string {
 }
 
 func (endpoint Endpoint) IsPrivate() bool {
+	if endpoint.FlagPrivate {
+		return true
+	}
 	ip := net.ParseIP(endpoint.Host)
 	return ip.IsPrivate()
 }

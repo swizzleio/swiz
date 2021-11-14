@@ -79,7 +79,7 @@ func (s *Connection) Forward(serverAddr string, remoteAddr string, cfg *ssh.Clie
 		log.Printf("remote dial error: %s\n", err)
 		return err
 	}
-	log.Printf("connected to %s (2 of 2)\n", remoteConn)
+	log.Printf("connected to %s (2 of 2)\n", remoteConn.RemoteAddr())
 
 	s.Remote = remoteConn
 	s.Server = serverConn

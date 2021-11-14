@@ -23,12 +23,17 @@ func NewOsxClient(fs fshelper.FsHelper, exec exechelper.ExecHelper) model.Client
 
 // Launch launches a client based on the specified launch profile
 func (c OsxClient) Launch(profile model.RemoteLaunchProfile) error {
+	// Determine what to launch. Eventually this can possibly be more of a map similar to the aws system
 	switch strings.ToLower(profile.Appname) {
 	case common.RemoteAccessRdp:
 		return c.launchRdp(profile)
-
 	case common.RemoteAccessSsh:
 		return c.launchSsh(profile)
+	case common.RemoteAccessGuess:
+		switch strings.ToLower(profile.Os) {
+		case common.OsPgSql:
+			return c.launchPgSql(profile)
+		}
 	}
 
 	return common.NotSupportedError{Subject: profile.Appname}

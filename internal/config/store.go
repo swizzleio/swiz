@@ -149,14 +149,18 @@ type HostLaunchInfo struct {
 }
 
 // GetHostLaunchInfo returns all of the information needed to launch a tunnel
-// TODO: This needs to be moved into it's own service
+// TODO: This needs to be moved into it's own service. Then it can make a decision around what app to launch...
 func (c Store) GetHostLaunchInfo(host inframodel.TargetInstance) (*HostLaunchInfo, error) {
 
 	// Get launch profile
 	launchProfile := c.cfg.LaunchProfile[strings.ToLower(host.Os)]
 	if launchProfile == nil {
-		return nil, common.NotFoundError{
-			Subject: host.Os,
+		// Create a generic launch profile
+		launchProfile = &LaunchProfile{
+			DefaultApp: common.RemoteAccessGuess,
+			Auth:       AuthInfo{},
+			Width:      0,
+			Height:     0,
 		}
 	}
 
@@ -168,11 +172,15 @@ func (c Store) GetHostLaunchInfo(host inframodel.TargetInstance) (*HostLaunchInf
 			break
 		}
 	}
-	if hostEndpoint.User == "" {
-		hostEndpoint.User = launchProfile.DefaultUser
+
+	launchUser := hostEndpoint.User
+	launchPort := hostEndpoint.Port
+
+	if launchUser == "" {
+		launchUser = launchProfile.DefaultUser
 	}
-	if hostEndpoint.Port == 0 {
-		hostEndpoint.Port = launchProfile.DefaultPort
+	if launchPort == 0 {
+		launchPort = launchProfile.DefaultPort
 	}
 
 	// Fetch random bastion host
@@ -186,12 +194,14 @@ func (c Store) GetHostLaunchInfo(host inframodel.TargetInstance) (*HostLaunchInf
 		BastionAuth:      bastionHost.BastionAuth,
 		Os:               c.cfg.Os,
 		ClientConfig: clientmodel.RemoteLaunchProfile{
-			Appname:  launchProfile.DefaultApp,
-			Port:     launchProfile.DefaultPort,
-			Username: hostEndpoint.User,
-			Keyfile:  launchProfile.Auth.KeyFilename,
-			Width:    launchProfile.Width,
-			Height:   launchProfile.Height,
+			Appname:      launchProfile.DefaultApp,
+			Os:           host.Os,
+			Port:         launchPort,
+			InstanceName: host.Name,
+			Username:     launchUser,
+			Keyfile:      launchProfile.Auth.KeyFilename,
+			Width:        launchProfile.Width,
+			Height:       launchProfile.Height,
 		},
 	}, nil
 }

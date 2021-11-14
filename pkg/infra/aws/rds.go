@@ -40,9 +40,10 @@ func (e Rds) ListInstances() (map[string]model.TargetInstance, error) {
 				Os:   e.getOs(cluster.Engine),
 				Endpoints: []network.Endpoint{
 					{
-						Host: *cluster.Endpoint,
-						Port: int(*cluster.Port),
-						User: *cluster.MasterUsername,
+						Host:        *cluster.Endpoint,
+						Port:        int(*cluster.Port),
+						User:        *cluster.MasterUsername,
+						FlagPrivate: true,
 					},
 				},
 			}

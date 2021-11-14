@@ -9,10 +9,12 @@ const (
 	OsMariaDb = "mariadb"
 )
 
+// Currently this is used for a future capability where the actual app can be overridden.
+// Until then, this is a bit of ugly tech debt...
 const (
-	RemoteAccessSsh      = "ssh"
-	RemoteAccessRdp      = "rdp"
-	RemoteAccessPostgres = "postgres"
+	RemoteAccessGuess = "guess"
+	RemoteAccessSsh   = "ssh"
+	RemoteAccessRdp   = "rdp"
 )
 
 const (
