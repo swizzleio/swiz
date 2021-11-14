@@ -4,6 +4,7 @@ import (
 	"getswizzle.io/swiz/pkg/client/model"
 	"getswizzle.io/swiz/pkg/client/osx"
 	"getswizzle.io/swiz/pkg/common"
+	"getswizzle.io/swiz/pkg/exechelper"
 	"getswizzle.io/swiz/pkg/fshelper"
 	"strings"
 )
@@ -22,8 +23,9 @@ func NewService() Servicer {
 	}
 
 	fs := fshelper.NewFsHelper()
+	exec := exechelper.NewExecHelper()
 
-	svc.clients[common.OsOsx] = osx.NewOsxClient(fs)
+	svc.clients[common.OsOsx] = osx.NewOsxClient(fs, exec)
 
 	return svc
 }

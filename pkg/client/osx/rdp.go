@@ -2,7 +2,13 @@ package osx
 
 import (
 	"bytes"
+	"fmt"
 	"getswizzle.io/swiz/pkg/client/model"
+	"getswizzle.io/swiz/pkg/exechelper"
+	"getswizzle.io/swiz/pkg/fshelper"
+	"github.com/google/uuid"
+	"log"
+	"path"
 	"text/template"
 )
 
@@ -61,8 +67,9 @@ disable wallpaper:i:0
 gatewayaccesstoken:s:
 `
 
+// genRdpFileString returns a generated rdp file string from the launch profile
 func genRdpFileString(profile model.RemoteLaunchProfile) (string, error) {
-	tmpl, err := template.New("osxlaunch").Parse(rdpTemplate)
+	tmpl, err := template.New("rdplaunch").Parse(rdpTemplate)
 	if err != nil {
 		return "", err
 	}
@@ -73,4 +80,26 @@ func genRdpFileString(profile model.RemoteLaunchProfile) (string, error) {
 	// Create template string
 	rdpStr := templBuf.String()
 	return rdpStr, nil
+}
+
+// launchRdp launches an rdp app
+func launchRdp(profile model.RemoteLaunchProfile, fs fshelper.FsHelper, exec exechelper.ExecHelper) error {
+	return fs.RunInTempDir(false, func(tmpPath string) error {
+		// Generate file name
+		randuuid, err := uuid.NewUUID()
+		if err != nil {
+			return err
+		}
+
+		filename := path.Join(tmpPath, fmt.Sprintf("%s.rdp", randuuid))
+		log.Printf("[DEBUG] creating file %v", filename)
+		rdpStr, err := genRdpFileString(profile)
+		if err != nil {
+			return err
+		}
+
+		err = fs.WriteString(filename, rdpStr)
+
+		return exec.RunShellCmd("", "command", "open", "-n", "-F", "-W", "-a", "/Applications/Microsoft Remote Desktop.app", filename)
+	})
 }

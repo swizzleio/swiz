@@ -25,6 +25,8 @@ Install the following optional dependencies (from outside the project):
 
 # Future roadmap
 
+* Allow multiple commands to be run concurrently
+* Allow for custom client apps
 * Allow for a reverse tunnel that allows for explicit interactions with local resources (webhooks in your local dev
   environment anyone)
 * Support for additional clouds (Azure, GCP, etc)
