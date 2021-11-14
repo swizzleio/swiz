@@ -1,6 +1,7 @@
 package fshelper
 
 import (
+	"github.com/spf13/afero"
 	"log"
 	"os"
 	"path"
@@ -12,10 +13,18 @@ const TempDirName = "swiztmpdir"
 func (f FsHelp) RunInTempDir(useFullPath bool, exec TempDirExecFunc) error {
 	log.Printf("[DEBUG] Creating temp dir %v", TempDirName)
 
-	// Create dir
-	err := f.Fs.Mkdir(TempDirName, 0700)
+	// Create dir if it doesn't exist. If the dir exists, it's probably because
+	// of an earlier crash
+	exists, err := afero.Exists(f.Fs, TempDirName)
 	if err != nil {
 		return err
+	}
+
+	if !exists {
+		err = f.Fs.Mkdir(TempDirName, 0700)
+		if err != nil {
+			return err
+		}
 	}
 
 	dir := TempDirName
