@@ -9,6 +9,7 @@ type TargetInstance struct {
 	Id        string
 	Name      string
 	Os        string
+	Flavor    string
 	Endpoints []network.Endpoint
 }
 

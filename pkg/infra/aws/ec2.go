@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"getswizzle.io/swiz/pkg/common"
 	"getswizzle.io/swiz/pkg/infra/model"
 	"getswizzle.io/swiz/pkg/network"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -9,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
-const DefaultPlatform = "Linux"
+const DefaultPlatform = common.OsLinux
 const DefaultPlatformTagName = "Os"
 
 type Ec2 struct {
@@ -62,7 +63,6 @@ func (e Ec2) ListInstances() (map[string]model.TargetInstance, error) {
 				}
 
 				instances[vm.Id] = vm
-
 			}
 		}
 	}

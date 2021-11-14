@@ -36,6 +36,10 @@ func NewInfraService() (*InfraService, error) {
 				description: "AWS EC2",
 				instance:    aws.NewEc2(cfg),
 			},
+			"AwsRds": {
+				description: "AWS RDS",
+				instance:    aws.NewRds(cfg),
+			},
 		},
 	}, nil
 }

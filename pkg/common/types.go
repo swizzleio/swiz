@@ -4,11 +4,15 @@ const (
 	OsWindows = "windows"
 	OsOsx     = "darwin"
 	OsLinux   = "linux"
+	OsPgSql   = "postgresql"
+	OsMySql   = "mysql"
+	OsMariaDb = "mariadb"
 )
 
 const (
-	RemoteAccessSsh = "ssh"
-	RemoteAccessRdp = "rdp"
+	RemoteAccessSsh      = "ssh"
+	RemoteAccessRdp      = "rdp"
+	RemoteAccessPostgres = "postgres"
 )
 
 const (
