@@ -7,5 +7,6 @@ type FsHelper interface {
 	CreatePath(filename string) error
 	ReadJson(filename string, obj interface{}) error
 	WriteJson(filename string, obj interface{}) error
+	WriteString(filename string, data string) error
 	RunInTempDir(useFullPath bool, exec TempDirExecFunc) error
 }

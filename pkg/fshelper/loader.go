@@ -50,3 +50,8 @@ func (f FsHelp) WriteJson(filename string, obj interface{}) error {
 
 	return err
 }
+
+// WriteString writes a string to a file
+func (f FsHelp) WriteString(filename string, data string) error {
+	return afero.WriteFile(f.Fs, filename, []byte(data), 0600)
+}
