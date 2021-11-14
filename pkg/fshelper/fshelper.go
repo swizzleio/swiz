@@ -1,7 +1,7 @@
 package fshelper
 
 // TempDirExecFunc is the function that runs in the temp path
-type TempDirExecFunc func(path string) error
+type TempDirExecFunc func(tmpPath string) error
 
 type FsHelper interface {
 	CreatePath(filename string) error
