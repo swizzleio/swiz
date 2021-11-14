@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"getswizzle.io/swiz/pkg/client/model"
-	"getswizzle.io/swiz/pkg/exechelper"
-	"getswizzle.io/swiz/pkg/fshelper"
 	"github.com/google/uuid"
 	"log"
 	"path"
@@ -83,8 +81,8 @@ func genRdpFileString(profile model.RemoteLaunchProfile) (string, error) {
 }
 
 // launchRdp launches an rdp app
-func launchRdp(profile model.RemoteLaunchProfile, fs fshelper.FsHelper, exec exechelper.ExecHelper) error {
-	return fs.RunInTempDir(false, func(tmpPath string) error {
+func (c OsxClient) launchRdp(profile model.RemoteLaunchProfile) error {
+	return c.fs.RunInTempDir(false, func(tmpPath string) error {
 		// Generate file name
 		randuuid, err := uuid.NewUUID()
 		if err != nil {
@@ -98,8 +96,8 @@ func launchRdp(profile model.RemoteLaunchProfile, fs fshelper.FsHelper, exec exe
 			return err
 		}
 
-		err = fs.WriteString(filename, rdpStr)
+		err = c.fs.WriteString(filename, rdpStr, 0600)
 
-		return exec.RunShellCmd("", "command", "open", "-n", "-F", "-W", "-a", "/Applications/Microsoft Remote Desktop.app", filename)
+		return c.exec.RunShellCmd("", "command", "open", "-n", "-F", "-W", "-a", "/Applications/Microsoft Remote Desktop.app", filename)
 	})
 }

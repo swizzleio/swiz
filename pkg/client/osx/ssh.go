@@ -2,28 +2,51 @@ package osx
 
 import (
 	"bytes"
+	"fmt"
 	"getswizzle.io/swiz/pkg/client/model"
-	"getswizzle.io/swiz/pkg/exechelper"
+	"github.com/google/uuid"
 	"log"
+	"path"
 	"text/template"
 )
 
-// launchSsh launches an SSH app
-func launchSsh(profile model.RemoteLaunchProfile, exec exechelper.ExecHelper) error {
-	// Generate template
-	// TODO: Sanitize template profile
-	//tmpl, err := template.New("osxlaunch").Parse("/usr/bin/ssh -i {{.Keyfile}} {{.Username}}@127.0.0.1 -p {{.TunnelPort}}")
-	tmpl, err := template.New("sshlaunch").Parse("ssh://{{.Username}}@127.0.0.1:{{.TunnelPort}}?keyfile={{.Keyfile}}")
+const sshTemplate = `#!/bin/sh
+ssh -i {{.Keyfile}} {{.Username}}@127.0.0.1 -p {{.TunnelPort}}
+`
+
+func genSshFileString(profile model.RemoteLaunchProfile) (string, error) {
+	// TODO: These params need to be sanitized!
+	tmpl, err := template.New("sshlaunch").Parse(sshTemplate)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var templBuf bytes.Buffer
 	err = tmpl.Execute(&templBuf, profile)
 
-	// Create command and redirect output
-	param := templBuf.String()
+	// Create template string
+	rdpStr := templBuf.String()
+	return rdpStr, nil
+}
 
-	log.Printf("[DEBUG] starting ssh with connection %s\n", param)
-	return exec.RunShellCmd("/usr/bin/", "open", "-n", "-F", "-W", "-a", "Terminal", param)
+// launchSsh launches an SSH app
+func (c OsxClient) launchSsh(profile model.RemoteLaunchProfile) error {
+	return c.fs.RunInTempDir(false, func(tmpPath string) error {
+		// Generate file name
+		randuuid, err := uuid.NewUUID()
+		if err != nil {
+			return err
+		}
+
+		filename := path.Join(tmpPath, fmt.Sprintf("%s.sh", randuuid))
+		log.Printf("[DEBUG] creating file %v", filename)
+		rdpStr, err := genSshFileString(profile)
+		if err != nil {
+			return err
+		}
+
+		err = c.fs.WriteString(filename, rdpStr, 0700)
+
+		return c.exec.RunShellCmd("", "open", "-n", "-F", "-W", "-a", "Terminal", filename)
+	})
 }

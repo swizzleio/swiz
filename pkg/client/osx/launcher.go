@@ -25,10 +25,10 @@ func NewOsxClient(fs fshelper.FsHelper, exec exechelper.ExecHelper) model.Client
 func (c OsxClient) Launch(profile model.RemoteLaunchProfile) error {
 	switch strings.ToLower(profile.Appname) {
 	case common.RemoteAccessRdp:
-		return launchRdp(profile, c.fs, c.exec)
+		return c.launchRdp(profile)
 
 	case common.RemoteAccessSsh:
-		return launchSsh(profile, c.exec)
+		return c.launchSsh(profile)
 	}
 
 	return common.NotSupportedError{Subject: profile.Appname}
