@@ -135,7 +135,7 @@ func connectCmd(ctx *cli.Context) error {
 	if err != nil {
 		log.Fatalf("loading key %v", err)
 	}
-	tun := ssh.NewSshTunnel(launchInfo.BastionAddr, "", keyAuth.GetAuthMethod(), launchInfo.HostString, 0) // TODO: Add host key
+	tun := ssh.NewSshTunnel(launchInfo.BastionAddr, launchInfo.BastionSignature, keyAuth.GetAuthMethod(), launchInfo.HostString, 0)
 
 	exitCh := launchTunnel(tun)
 

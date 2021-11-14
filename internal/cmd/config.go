@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"getswizzle.io/swiz/internal/config"
 	"getswizzle.io/swiz/pkg/common"
 	"github.com/AlecAivazis/survey/v2"
@@ -38,22 +39,13 @@ func configCmd(ctx *cli.Context) error {
 	}
 
 	// Ask the user about bastion hosts
-	bastionHosts := strings.Join(cfg.BastionAddrs, ", ")
-	bastionPem := cfg.BastionAuth.KeyFilename
+	bastionHostAddrs := strings.Join(cfg.GetBastionAddrList(), ", ")
 	questions := []*survey.Question{
 		{
 			Name: "bastionhosts",
 			Prompt: &survey.Input{
 				Message: "Provide a comma seperated list of bastion hosts in the form of username@ip: ",
-				Default: bastionHosts,
-			},
-			Validate: survey.Required,
-		},
-		{
-			Name: "bastionhostkey",
-			Prompt: &survey.Input{
-				Message: "Provide the pem filename used for the bastion host: ",
-				Default: bastionPem,
+				Default: bastionHostAddrs,
 			},
 			Validate: survey.Required,
 		},
@@ -61,7 +53,6 @@ func configCmd(ctx *cli.Context) error {
 			Name: "linuxhostkey",
 			Prompt: &survey.Input{
 				Message: "Provide the pem filename used for linux hosts: ",
-				Default: bastionPem,
 			},
 		},
 		{
@@ -83,19 +74,24 @@ func configCmd(ctx *cli.Context) error {
 	}
 
 	answers := struct {
-		BastionHosts   string
-		BastionHostKey string
-		LinuxHostKey   string
-		LinuxFlavor    string
-		Write          string
+		BastionHosts string
+		LinuxHostKey string
+		LinuxFlavor  string
+		Write        string
 	}{}
 	err = survey.Ask(questions, &answers)
 	if err != nil {
 		log.Fatalf("prompting user %v", err)
 	}
 
+	// Ask about bastion hosts
+	bastionHosts, err := askBastionHosts(cfg, answers.BastionHosts)
+	if err != nil {
+		log.Fatalf("prompting user for bastion host information %v", err)
+	}
+
 	if answers.Write == "yes" {
-		cfgStore.GenerateDefaults(answers.LinuxFlavor, answers.LinuxHostKey, answers.BastionHosts, answers.BastionHostKey)
+		cfgStore.GenerateDefaults(answers.LinuxFlavor, answers.LinuxHostKey, bastionHosts)
 		err = cfgStore.Save(filename)
 		if err != nil {
 			log.Fatalf("saving config file %v", err)
@@ -103,4 +99,52 @@ func configCmd(ctx *cli.Context) error {
 	}
 
 	return nil
+}
+
+// askBastionHosts asks questions about the bastion hosts
+func askBastionHosts(cfg config.Config, bastionHosts string) ([]config.Bastion, error) {
+	hostList := strings.Split(bastionHosts, ",")
+	retVal := []config.Bastion{}
+	for _, h := range hostList {
+		addr := strings.TrimSpace(h)
+		bastion := cfg.GetBastionByAddr(addr)
+		if nil == bastion {
+			bastion = &config.Bastion{
+				Addr: addr,
+			}
+		}
+
+		bastionAnswers := struct {
+			BastionHostKey string
+			Signature      string
+		}{}
+
+		bastionQuestions := []*survey.Question{
+			{
+				Name: "bastionhostkey",
+				Prompt: &survey.Input{
+					Message: fmt.Sprintf("Provide the pem filename used for the bastion host at %v: ", addr),
+					Default: bastion.BastionAuth.KeyFilename,
+				},
+				Validate: survey.Required,
+			},
+			{
+				Name: "signature",
+				Prompt: &survey.Input{
+					Message: fmt.Sprintf("Provide the signature for the bastion host at %v: ", addr),
+					Default: bastion.Signature,
+				},
+			},
+		}
+		err := survey.Ask(bastionQuestions, &bastionAnswers)
+		if err != nil {
+			return nil, err
+		}
+
+		bastion.BastionAuth.KeyFilename = bastionAnswers.BastionHostKey
+		bastion.Signature = bastionAnswers.Signature
+
+		retVal = append(retVal, *bastion)
+	}
+	return retVal, nil
 }

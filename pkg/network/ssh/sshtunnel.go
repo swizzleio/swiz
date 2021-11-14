@@ -53,12 +53,12 @@ func createKeyValidationCallback(trustedKey string, warnOnEmpty bool) ssh.HostKe
 	if trustedKey == "" {
 		if warnOnEmpty {
 			return func(_ string, _ net.Addr, k ssh.PublicKey) error {
-				log.Printf("[WARN] there is a security issue!!! The SSH key validation is empty. Add this to the config: %q", createKeyString(k))
+				log.Printf("[WARN] there is a security issue!!! The SSH signature is empty. Add this to the config: %q", createKeyString(k))
 				return nil
 			}
 		} else {
 			return func(_ string, _ net.Addr, k ssh.PublicKey) error {
-				return fmt.Errorf("empty key. Validate the following remote key and add it to the config: %q", createKeyString(k))
+				return fmt.Errorf("empty signature. Validate the following remote signature and add it to the config: %q", createKeyString(k))
 			}
 		}
 

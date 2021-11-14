@@ -6,6 +6,7 @@ import (
 	"getswizzle.io/swiz/pkg/fshelper"
 	inframodel "getswizzle.io/swiz/pkg/infra/model"
 	"getswizzle.io/swiz/pkg/network"
+	"github.com/google/uuid"
 	"log"
 	"math/rand"
 	"os"
@@ -24,7 +25,7 @@ type Storer interface {
 	Load(filename string) (Config, error)
 	MustLoad(filename string) Config
 	Save(filename string) error
-	GenerateDefaults(linuxFlavor string, linuxHostKey string, bastionHosts string, bastionHostKey string)
+	GenerateDefaults(linuxFlavor string, linuxHostKey string, bastionHosts []Bastion)
 	GetHostLaunchInfo(host inframodel.TargetInstance) (*HostLaunchInfo, error)
 	Get() Config
 }
@@ -40,8 +41,7 @@ func NewConfig() Storer {
 		cfg: Config{
 			Version:       1,
 			Os:            runtime.GOOS,
-			BastionAddrs:  []string{},
-			BastionAuth:   AuthInfo{},
+			BastionHosts:  []Bastion{},
 			LaunchProfile: map[string]*LaunchProfile{},
 		},
 	}
@@ -53,8 +53,7 @@ func NewConfigMustLoad(filename string) Storer {
 		cfg: Config{
 			Version:       1,
 			Os:            runtime.GOOS,
-			BastionAddrs:  []string{},
-			BastionAuth:   AuthInfo{},
+			BastionHosts:  []Bastion{},
 			LaunchProfile: map[string]*LaunchProfile{},
 		},
 	}
@@ -97,17 +96,18 @@ func (c Store) Save(filename string) error {
 }
 
 // GenerateDefaults resets the config file
-func (c *Store) GenerateDefaults(linuxFlavor string, linuxHostKey string, bastionHosts string, bastionHostKey string) {
+func (c *Store) GenerateDefaults(linuxFlavor string, linuxHostKey string, bastionHosts []Bastion) {
 	// Reset values
 	c.cfg.LaunchProfile = map[string]*LaunchProfile{}
-	c.cfg.BastionAddrs = []string{}
+	c.cfg.BastionHosts = bastionHosts
 
-	// Update bastion hosts
-	hostList := strings.Split(bastionHosts, ",")
-	for _, h := range hostList {
-		c.cfg.BastionAddrs = append(c.cfg.BastionAddrs, strings.TrimSpace(h))
+	// Update bastion ids if they are empty
+	for i, bastion := range c.cfg.BastionHosts {
+		_, err := uuid.Parse(bastion.Id)
+		if err != nil {
+			c.cfg.BastionHosts[i].Id = uuid.New().String()
+		}
 	}
-	c.cfg.BastionAuth.KeyFilename = bastionHostKey
 
 	// Determine linux username
 	linuxUser := "root"
@@ -140,11 +140,12 @@ func (c *Store) GenerateDefaults(linuxFlavor string, linuxHostKey string, bastio
 }
 
 type HostLaunchInfo struct {
-	ClientConfig clientmodel.RemoteLaunchProfile
-	HostString   string
-	Os           string
-	BastionAddr  string
-	BastionAuth  AuthInfo
+	ClientConfig     clientmodel.RemoteLaunchProfile
+	HostString       string
+	Os               string
+	BastionAddr      string
+	BastionSignature string
+	BastionAuth      AuthInfo
 }
 
 // GetHostLaunchInfo returns all of the information needed to launch a tunnel
@@ -175,14 +176,15 @@ func (c Store) GetHostLaunchInfo(host inframodel.TargetInstance) (*HostLaunchInf
 	}
 
 	// Fetch random bastion host
-	randomIndex := rand.Intn(len(c.cfg.BastionAddrs))
-	bastionHost := c.cfg.BastionAddrs[randomIndex]
+	randomIndex := rand.Intn(len(c.cfg.BastionHosts))
+	bastionHost := c.cfg.BastionHosts[randomIndex]
 
 	return &HostLaunchInfo{
-		HostString:  hostEndpoint.String(),
-		BastionAddr: bastionHost,
-		BastionAuth: c.cfg.BastionAuth,
-		Os:          c.cfg.Os,
+		HostString:       hostEndpoint.String(),
+		BastionAddr:      bastionHost.Addr,
+		BastionSignature: bastionHost.Signature,
+		BastionAuth:      bastionHost.BastionAuth,
+		Os:               c.cfg.Os,
 		ClientConfig: clientmodel.RemoteLaunchProfile{
 			Appname:  launchProfile.DefaultApp,
 			Port:     launchProfile.DefaultPort,

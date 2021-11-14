@@ -33,7 +33,7 @@ func (c OsxClient) Launch(profile model.RemoteLaunchProfile) error {
 }
 
 // launchOsx launches a command in OSX
-func (c OsxClient) launchOsx(profile model.RemoteLaunchProfile, appName string, templateStr string) error {
+func (c OsxClient) launchOsx(profile model.RemoteLaunchProfile, cmdApp string, templateStr string) error {
 	// Generate template
 	// TODO: Sanitize template profile (specifically username)
 	tmpl, err := template.New("osxlaunch").Parse(templateStr)
@@ -46,7 +46,8 @@ func (c OsxClient) launchOsx(profile model.RemoteLaunchProfile, appName string, 
 
 	// Create command and redirect output
 	param := templBuf.String()
-	cmd := exec.Command("command", "open", "-n", "-F", "-W", "-a", appName, param)
+	//cmd := exec.Command("command", "open", "-n", "-F", "-W", "-a", appParams, param)
+	cmd := exec.Command("command", "open", "-n", "-F", "-W", param)
 	stderr, err := cmd.StderrPipe()
 	log.SetOutput(os.Stderr)
 	if err != nil {
