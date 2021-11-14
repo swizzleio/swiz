@@ -7,12 +7,6 @@ import (
 	"path/filepath"
 )
 
-type FsHelper interface {
-	CreatePath(filename string) error
-	ReadJson(filename string, obj interface{}) error
-	WriteJson(filename string, obj interface{}) error
-}
-
 type FsHelp struct {
 	Fs afero.Fs
 }
