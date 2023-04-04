@@ -8,9 +8,9 @@ This application allows for the sequencing of these deployments.
 
 ## Roadmap
 
-- [] Support for CloudFormation
-- [] Support for the AWS CDK
-- [] Support for terraform
-- [] Azure and GCP support
-- [] Cross cloud orchestration support
-- [] Artisnal grill cheese sandwich delivery command
+- [ ] Support for CloudFormation
+- [ ] Support for the AWS CDK
+- [ ] Support for terraform
+- [ ] Azure and GCP support
+- [ ] Cross cloud orchestration support
+- [ ] Artisnal grill cheese sandwich delivery command
