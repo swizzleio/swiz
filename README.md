@@ -6,11 +6,12 @@ A common problem with distributed archectectures is there can be deploy time dep
 
 This application allows for the sequencing of these deployments.
 
+## Mental Model
+
+A stack represents a single service or deployment. It's the smallest possible unit. Typically a stack will have a single git repo.
+
+An environment consists of many stacks. Environments can be a product in production, development, test, PR, etc.
+
 ## Roadmap
 
-- [ ] Support for CloudFormation
-- [ ] Support for the AWS CDK
-- [ ] Support for terraform
-- [ ] Azure and GCP support
-- [ ] Cross cloud orchestration support
-- [ ] Artisnal grill cheese sandwich delivery command
+The [product roadmap](https://github.com/orgs/swizzleio/projects/1) is kept here. Note, debt items are intermingled with features.
