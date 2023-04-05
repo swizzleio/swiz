@@ -104,10 +104,10 @@ func (c *CfWrap) DeleteStack(stackName string) error {
 	return nil
 }
 
-func (c *CfWrap) WaitForStack(stackName string) error {
+func (c *CfWrap) WaitForStack(stackName string, timeoutMin float64) error {
 	waiter := cloudformation.NewStackCreateCompleteWaiter(c.client)
 	err := waiter.Wait(context.TODO(), &cloudformation.DescribeStacksInput{StackName: &stackName},
-		time.Duration(20*time.Minute))
+		time.Duration(timeoutMin)*time.Minute)
 
 	if err != nil {
 		return errors.Wrap(err, "Unable to wait for stack")
