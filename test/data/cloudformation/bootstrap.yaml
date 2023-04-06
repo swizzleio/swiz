@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Bootstrap test data
+Resources:
+  SleepTestRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        -
+          PolicyName: SleepTestLambdaRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Sid: AllowLogging
+                Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+  SleepTestFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Custom resource that just sleeps
+      Handler: index.handler
+      Runtime: python3.9
+      Role: !GetAtt SleepTestRole.Arn
+      Timeout: 120
+      Code:
+        ZipFile: |
+          import os 
+          import json
+          import cfnresponse
+          import time
+          import logging
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def handler(event, context):
+            logger.info("Received event: %s" % json.dumps(event))
+
+            if event['RequestType'] == 'Create' or event['RequestType'] == 'Update':
+              sleep_time = int(event["ResourceProperties"]["SleepTime"])
+              logger.info("Sleeping for %i", sleep_time)
+              time.sleep(sleep_time)
+
+            result = cfnresponse.SUCCESS
+
+            cfnresponse.send(event, context, result, {})
+Outputs:
+  SleepTestFunctionArn:
+    Value: !GetAtt SleepTestFunction.Arn
