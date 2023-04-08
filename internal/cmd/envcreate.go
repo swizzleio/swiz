@@ -17,8 +17,6 @@ func init() {
 }
 
 func envCreateCmd(ctx *cli.Context) error {
-	fmt.Printf("To be implemented\n")
-
 	stack, err := fileutil.YamlFromLocation[model.StackConfig]("file://test/data/cloudformation/sleepstack-cfg.yaml")
 	if err != nil {
 		return err
