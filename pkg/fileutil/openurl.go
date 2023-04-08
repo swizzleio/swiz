@@ -23,7 +23,22 @@ func OpenUrl(location string) ([]byte, error) {
 		return httpGet(location)
 	}
 
-	return nil, fmt.Errorf("Unsupported protocol: %s", u.Scheme)
+	return nil, fmt.Errorf("unsupported protocol: %s", u.Scheme)
+}
+
+func WriteUrl(location string, data []byte) error {
+	// Determine the protocol
+	u, err := url.Parse(location)
+	if err != nil {
+		return err
+	}
+
+	switch u.Scheme {
+	case "file":
+		return fileSave(path.Join(u.Host, u.Path), data)
+	}
+
+	return fmt.Errorf("unsupported protocol: %s", u.Scheme)
 }
 
 func httpGet(location string) ([]byte, error) {
@@ -50,4 +65,23 @@ func fileGet(location string) ([]byte, error) {
 	defer file.Close()
 
 	return io.ReadAll(file)
+}
+
+func fileSave(location string, data []byte) error {
+	// Open a file for writing
+	file, err := os.Create(location)
+	if err != nil {
+		return err
+	}
+
+	// Close the file when we are done
+	defer file.Close()
+
+	// Write data to the file
+	_, err = file.Write(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

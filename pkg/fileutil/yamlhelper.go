@@ -19,3 +19,20 @@ func YamlFromLocation[T any](location string) (*T, error) {
 
 	return out, nil
 }
+
+func YamlToLocation[T any](location string, data T) error {
+
+	// Marshal YAML into StackConfig
+	out, err := yaml.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	// Write URL
+	err = WriteUrl(location, out)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
