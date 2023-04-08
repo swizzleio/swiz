@@ -6,8 +6,9 @@ import (
 )
 
 type StackConfig struct {
-	Version    int                    `yaml:"version"`
-	Parameters map[string]interface{} `yaml:"params"`
+	Version      int                    `yaml:"version"`
+	Parameters   map[string]interface{} `yaml:"params"`
+	TemplateFile string                 `yaml:"template_file"`
 }
 
 func NewFromConfig(cfg StackConfig) *Stack {

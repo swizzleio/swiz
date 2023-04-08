@@ -1,6 +1,11 @@
 version: 1
+config:
+  - enclave: dev
+    params:
+      LogLevel: DEBUG
+      VpcId: vpc-0123456789abcdef0
 stacks:
   - name: swiz-boot
-    template: file://bootstrap.yaml
+    config_file: file://bootstrap-cfg.yaml
   - name: swiz-sleep
-    config: file://sleepstack-cfg.yaml
+    config_file: file://sleepstack-cfg.yaml

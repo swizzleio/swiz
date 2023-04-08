@@ -1,5 +1,6 @@
 ---
 version: 1
+template_file: file://bootstrap-.yaml
 params:
   SleepTestTime: 10
   SleepTestFunctionArn: swiz-boot.SleepTestFunctionArn
