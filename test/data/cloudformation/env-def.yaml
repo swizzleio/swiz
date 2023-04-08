@@ -1,0 +1,6 @@
+version: 1
+stacks:
+  - name: swiz-boot
+    template: file://bootstrap.yaml
+  - name: swiz-sleep
+    config: file://sleepstack-cfg.yaml
