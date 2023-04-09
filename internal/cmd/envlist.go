@@ -7,8 +7,8 @@ import (
 )
 
 func init() {
-	addCommand(&cli.Command{
-		Name:   "envlist",
+	addSubCommand("env", &cli.Command{
+		Name:   "list",
 		Usage:  "TBD",
 		Action: envListCmd,
 	})

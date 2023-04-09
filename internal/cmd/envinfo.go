@@ -7,8 +7,8 @@ import (
 )
 
 func init() {
-	addCommand(&cli.Command{
-		Name:   "envinfo",
+	addSubCommand("env", &cli.Command{
+		Name:   "info",
 		Usage:  "TBD",
 		Action: envInfoCmd,
 	})

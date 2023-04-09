@@ -7,8 +7,8 @@ import (
 )
 
 func init() {
-	addCommand(&cli.Command{
-		Name:   "envdelete",
+	addSubCommand("env", &cli.Command{
+		Name:   "delete",
 		Usage:  "TBD",
 		Action: envDeleteCmd,
 	})

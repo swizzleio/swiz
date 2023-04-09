@@ -20,6 +20,15 @@ func addCommand(cmd *cli.Command) {
 	commands = append(commands, cmd)
 }
 
+// addSubCommand adds subcommands to the list
+func addSubCommand(cmdName string, subCmd *cli.Command) {
+	for _, cmd := range commands {
+		if cmd.Name == cmdName {
+			cmd.Subcommands = append(cmd.Subcommands, subCmd)
+		}
+	}
+}
+
 // Execute adds all child commands to the root command. This is called by main and is considered the main entry point.
 func Execute() {
 

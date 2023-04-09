@@ -9,8 +9,8 @@ import (
 )
 
 func init() {
-	addCommand(&cli.Command{
-		Name:   "envcreate",
+	addSubCommand("env", &cli.Command{
+		Name:   "create",
 		Usage:  "TBD",
 		Action: envCreateCmd,
 	})
