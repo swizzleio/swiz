@@ -32,6 +32,7 @@ type AppConfig struct {
 	Version           int          `yaml:"version"`
 	EnvDefinition     []EnvDef     `yaml:"env_def"`
 	EnclaveDefinition []EnclaveDef `yaml:"enclave_def"`
+	DisabledCommands  []string     `yaml:"disabled_commands"`
 }
 
 func Parse(location string) (*AppConfig, error) {
