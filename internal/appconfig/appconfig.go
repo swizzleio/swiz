@@ -1,15 +1,16 @@
 package appconfig
 
 import (
+	"encoding/base64"
 	"fmt"
 	"github.com/swizzleio/swiz/pkg/configutil"
 	"github.com/swizzleio/swiz/pkg/drivers/awswrap"
 	"github.com/swizzleio/swiz/pkg/fileutil"
+	"github.com/swizzleio/swiz/pkg/security"
 	"gopkg.in/yaml.v3"
-	"os"
 )
 
-var DefaultLocaton = "file://~/.swiz/appconfig.yaml"
+var DefaultLocation = "file://~/.swiz/appconfig.yaml"
 
 var ProviderIds = []string{"aws"}
 
@@ -36,7 +37,7 @@ type AppConfig struct {
 func Parse(location string) (*AppConfig, error) {
 
 	if location == "" {
-		location = DefaultLocaton
+		location = DefaultLocation
 	}
 
 	// Open URL
@@ -56,7 +57,8 @@ func Parse(location string) (*AppConfig, error) {
 }
 
 func Generate(enclave EnclaveDef, env EnvDef) error {
-	if err := os.MkdirAll("~/.swiz", 0755); err != nil {
+	err := fileutil.CreateDirIfNotExist(DefaultLocation)
+	if err != nil {
 		return err
 	}
 
@@ -80,9 +82,36 @@ func Generate(enclave EnclaveDef, env EnvDef) error {
 		EnclaveDefinition: []EnclaveDef{enclave},
 	}
 
-	return fileutil.YamlToLocation(DefaultLocaton, cfg)
+	return fileutil.YamlToLocation(DefaultLocation, cfg)
 }
 
-func Fetch() {
-	// Decode base64 into file or URI
+func Fetch(data string) error {
+	err := fileutil.CreateDirIfNotExist(DefaultLocation)
+	if err != nil {
+		return err
+	}
+
+	// Decode base64
+	b64 := make([]byte, base64.StdEncoding.DecodedLen(len(data)))
+	n, err := base64.StdEncoding.Decode(b64, []byte(data))
+	if err != nil {
+		return err
+	}
+
+	// TODO, in the command line, verify signature
+	return fileutil.WriteUrl(DefaultLocation, b64[:n])
+}
+
+func (a AppConfig) GetBase64() (b64 string, sig string, err error) {
+	// Marshal YAML into StackConfig
+	var out []byte
+	out, err = yaml.Marshal(a)
+	if err != nil {
+		return "", "", err
+	}
+
+	b64 = base64.StdEncoding.EncodeToString(out)
+	sig = security.GetWordList(b64)
+
+	return b64, sig, nil
 }
