@@ -116,3 +116,15 @@ func (a AppConfig) GetBase64() (b64 string, sig string, err error) {
 
 	return b64, sig, nil
 }
+
+func (a AppConfig) GetEnvDef(name string) (*EnvDef, error) {
+	for _, env := range a.EnvDefinition {
+		if name == "" && env.Default {
+			return &env, nil
+		} else if env.Name == name {
+			return &env, nil
+		}
+	}
+
+	return &EnvDef{}, fmt.Errorf("env def not found")
+}
