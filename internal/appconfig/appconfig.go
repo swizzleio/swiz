@@ -35,6 +35,12 @@ type AppConfig struct {
 	DisabledCommands  []string     `yaml:"disabled_commands"`
 }
 
+type Base64Resp struct {
+	Encoded   string
+	WordList  string
+	Signature string
+}
+
 func Parse(location string) (*AppConfig, error) {
 
 	if location == "" {
@@ -103,18 +109,19 @@ func Fetch(data string) error {
 	return fileutil.WriteUrl(DefaultLocation, b64[:n])
 }
 
-func (a AppConfig) GetBase64() (b64 string, sig string, err error) {
-	// Marshal YAML into StackConfig
-	var out []byte
-	out, err = yaml.Marshal(a)
+func (a AppConfig) GetBase64() (*Base64Resp, error) {
+	// Marshal YAML
+	out, err := yaml.Marshal(a)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	b64 = base64.StdEncoding.EncodeToString(out)
-	sig = security.GetWordList(b64)
+	// Get encoding and signature
+	retVal := &Base64Resp{}
+	retVal.Encoded = base64.StdEncoding.EncodeToString(out)
+	retVal.Signature, retVal.WordList = security.GetSha256AndWordList(retVal.Encoded)
 
-	return b64, sig, nil
+	return retVal, nil
 }
 
 func (a AppConfig) GetEnvDef(name string) (*EnvDef, error) {

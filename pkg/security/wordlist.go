@@ -3,7 +3,6 @@ package security
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"strings"
 )
 
@@ -65,19 +64,17 @@ var oddWordList = [256]string{
 	"vacancy", "vagabond", "vertigo", "Virginia", "visitor", "vocalist", "voyager", "warranty", "Waterloo", "whimsical",
 	"Wichita", "Wilmington", "Wyoming", "yesteryear", "Yucatan"}
 
-func GetWordList(str string) string {
-	input := "Hello, I am a string to be hashed!"
+func GetSha256AndWordList(str string) (hashedString string, wordList string) {
 
 	hash := sha256.New()
-	hash.Write([]byte(input))
+	hash.Write([]byte(str))
 	hashedBytes := hash.Sum(nil)
-	hashedString := hex.EncodeToString(hashedBytes)
-
-	fmt.Println("Input string:", input)
-	fmt.Println("SHA-256 hash:", hashedString)
+	hashedString = hex.EncodeToString(hashedBytes)
 
 	pgpWords := bytesToPgpWords(hashedBytes)
-	return strings.Join(pgpWords, " ")
+	wordList = strings.Join(pgpWords, " ")
+
+	return
 }
 
 func bytesToPgpWords(bytes []byte) []string {
