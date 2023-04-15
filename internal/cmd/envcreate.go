@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"fmt"
+	"github.com/swizzleio/swiz/internal/environment"
 
-	"github.com/swizzleio/swiz/internal/environment/model"
-	"github.com/swizzleio/swiz/pkg/fileutil"
 	"github.com/urfave/cli/v2"
 )
 
@@ -17,12 +15,12 @@ func init() {
 }
 
 func envCreateCmd(ctx *cli.Context) error {
-	stack, err := fileutil.YamlFromLocation[model.StackConfig]("file://test/data/cloudformation/sleepstack-cfg.yaml")
+	envName := ctx.String("name")
+
+	svc, err := environment.NewEnvService(appConfig)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Stack: %v\n", stack)
-
-	return nil
+	return svc.CreateEnvironment("dev", envName)
 }

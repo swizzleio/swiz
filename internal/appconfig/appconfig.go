@@ -3,6 +3,7 @@ package appconfig
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/swizzleio/swiz/internal/environment/model"
 	"github.com/swizzleio/swiz/pkg/configutil"
 	"github.com/swizzleio/swiz/pkg/drivers/awswrap"
 	"github.com/swizzleio/swiz/pkg/fileutil"
@@ -20,19 +21,12 @@ type EnvDef struct {
 	Default    bool   `yaml:"default"`
 }
 
-type EnclaveDef struct {
-	Name       string `yaml:"name"`
-	ProviderId string `yaml:"provider_id"`
-	AccountId  string `yaml:"account_id"`
-	Region     string `yaml:"region"`
-	DomainName string `yaml:"domain_name"`
-}
-
 type AppConfig struct {
-	Version           int          `yaml:"version"`
-	EnvDefinition     []EnvDef     `yaml:"env_def"`
-	EnclaveDefinition []EnclaveDef `yaml:"enclave_def"`
-	DisabledCommands  []string     `yaml:"disabled_commands"`
+	Version           int             `yaml:"version"`
+	EnvDefinition     []EnvDef        `yaml:"env_def"`
+	EnclaveDefinition []model.Enclave `yaml:"enclave_def"`
+	DisabledCommands  []string        `yaml:"disabled_commands"`
+	BaseDir           string
 }
 
 type Base64Resp struct {
@@ -60,10 +54,15 @@ func Parse(location string) (*AppConfig, error) {
 		return nil, err
 	}
 
+	cfg.BaseDir, err = fileutil.GetPathFromUrl(location)
+	if err != nil {
+		return nil, err
+	}
+
 	return &cfg, nil
 }
 
-func Generate(enclave EnclaveDef, env EnvDef) error {
+func Generate(enclave model.Enclave, env EnvDef) error {
 	err := fileutil.CreateDirIfNotExist(DefaultLocation)
 	if err != nil {
 		return err
@@ -86,7 +85,7 @@ func Generate(enclave EnclaveDef, env EnvDef) error {
 	cfg := AppConfig{
 		Version:           1,
 		EnvDefinition:     []EnvDef{env},
-		EnclaveDefinition: []EnclaveDef{enclave},
+		EnclaveDefinition: []model.Enclave{enclave},
 	}
 
 	return fileutil.YamlToLocation(DefaultLocation, cfg)
@@ -122,16 +121,4 @@ func (a AppConfig) GetBase64() (*Base64Resp, error) {
 	retVal.Signature, retVal.WordList = security.GetSha256AndWordList(retVal.Encoded)
 
 	return retVal, nil
-}
-
-func (a AppConfig) GetEnvDef(name string) (*EnvDef, error) {
-	for _, env := range a.EnvDefinition {
-		if name == "" && env.Default {
-			return &env, nil
-		} else if env.Name == name {
-			return &env, nil
-		}
-	}
-
-	return &EnvDef{}, fmt.Errorf("env def not found")
 }

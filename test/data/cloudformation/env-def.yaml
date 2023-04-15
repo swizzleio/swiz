@@ -4,8 +4,8 @@ config:
     params:
       LogLevel: DEBUG
       VpcId: vpc-0123456789abcdef0
-stacks:
+stack_cfg:
   - name: swiz-boot
-    config_file: file://bootstrap-cfg.yaml
+    config_file: file://bootstrapstack-cfg.yaml
   - name: swiz-sleep
     config_file: file://sleepstack-cfg.yaml
