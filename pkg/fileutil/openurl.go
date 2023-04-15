@@ -7,9 +7,30 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 )
 
+func GetPathFromUrl(location string) (string, error) {
+	// Determine the protocol
+	u, err := url.Parse(location)
+	if err != nil {
+		return "", err
+	}
+
+	switch u.Scheme {
+	case "file":
+		dir, _ := filepath.Split(u.Path)
+		return path.Join(u.Host, dir), nil
+	}
+
+	return "", nil
+}
+
 func OpenUrl(location string) ([]byte, error) {
+	return OpenUrlWithBaseDir("", location)
+}
+
+func OpenUrlWithBaseDir(baseDir string, location string) ([]byte, error) {
 	// Determine the protocol
 	u, err := url.Parse(location)
 	if err != nil {
@@ -18,7 +39,7 @@ func OpenUrl(location string) ([]byte, error) {
 
 	switch u.Scheme {
 	case "file":
-		return fileGet(path.Join(u.Host, u.Path))
+		return fileGet(path.Join(path.Join(baseDir, u.Host), u.Path))
 	case "http":
 		return httpGet(location)
 	}
@@ -27,6 +48,10 @@ func OpenUrl(location string) ([]byte, error) {
 }
 
 func WriteUrl(location string, data []byte) error {
+	return WriteUrlWithBaseDir("", location, data)
+}
+
+func WriteUrlWithBaseDir(baseDir string, location string, data []byte) error {
 	// Determine the protocol
 	u, err := url.Parse(location)
 	if err != nil {
@@ -35,7 +60,7 @@ func WriteUrl(location string, data []byte) error {
 
 	switch u.Scheme {
 	case "file":
-		return fileSave(path.Join(u.Host, u.Path), data)
+		return fileSave(path.Join(path.Join(baseDir, u.Host), u.Path), data)
 	}
 
 	return fmt.Errorf("unsupported protocol: %s", u.Scheme)
