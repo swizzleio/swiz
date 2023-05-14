@@ -2,6 +2,7 @@ package environment
 
 import (
 	"fmt"
+
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/environment/repo"
 )
@@ -9,6 +10,7 @@ import (
 type EnvService struct {
 	enclaveRepo *repo.EnclaveRepo
 	envRepo     *repo.EnvironmentRepo
+	iacDeploy   repo.IacDeployer
 }
 
 func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
@@ -24,6 +26,7 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	return &EnvService{
 		envRepo:     envRepo,
 		enclaveRepo: enclaveRepo,
+		iacDeploy:   repo.NewDummyDeloyRepo(*config),
 	}, nil
 }
 
@@ -32,6 +35,9 @@ func (s *EnvService) CreateEnvironment(enclaveName string, envDef string) error 
 	enclave, err := s.enclaveRepo.GetEnclave(enclaveName)
 	if err != nil {
 		return err
+	}
+	if enclave == nil {
+		return fmt.Errorf("enclave %s not found", enclaveName)
 	}
 
 	// Check to see if the environment already exists
@@ -45,7 +51,7 @@ func (s *EnvService) CreateEnvironment(enclaveName string, envDef string) error 
 
 	// Create stacks
 	for _, stack := range env.Stacks {
-		fmt.Printf("Creating %v in %v with %v\n", stack.Name, enclave.Name, stack.TemplateFile)
+		s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile)
 	}
 
 	return nil

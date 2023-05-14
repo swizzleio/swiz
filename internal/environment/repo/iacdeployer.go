@@ -1,5 +1,9 @@
 package repo
 
+import (
+	"github.com/swizzleio/swiz/internal/environment/model"
+)
+
 type State int
 
 const (
@@ -32,12 +36,12 @@ type DeployStatus struct {
 }
 
 type IacDeployer interface {
-	CreateStack(name string, template string) error
-	DeleteStack(name string) error
-	UpdateStack(name string, template string) error
-	GetStackInfo(name string) (*StackInfo, error)
-	GetStackOutputs(name string) (map[string]string, error)
-	ListStacks(envName string) ([]string, error)
-	ListEnvironments() ([]string, error)
-	GetEnvironment(envName string) (*EnvironmentInfo, error)
+	CreateStack(enclave model.Enclave, name string, template string) error
+	DeleteStack(enclave model.Enclave, name string) error
+	UpdateStack(enclave model.Enclave, name string, template string) error
+	GetStackInfo(enclave model.Enclave, name string) (*StackInfo, error)
+	GetStackOutputs(enclave model.Enclave, name string) (map[string]string, error)
+	ListStacks(enclave model.Enclave, envName string) ([]string, error)
+	ListEnvironments(enclave model.Enclave) ([]string, error)
+	GetEnvironment(enclave model.Enclave, envName string) (*EnvironmentInfo, error)
 }
