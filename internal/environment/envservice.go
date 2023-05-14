@@ -34,11 +34,16 @@ func (s *EnvService) CreateEnvironment(enclaveName string, envDef string) error 
 		return err
 	}
 
+	// Check to see if the environment already exists
+
 	env, err := s.envRepo.GetEnvironmentByDef(envDef)
 	if err != nil {
 		return err
 	}
 
+	// TODO: Determine dependency order
+
+	// Create stacks
 	for _, stack := range env.Stacks {
 		fmt.Printf("Creating %v in %v with %v\n", stack.Name, enclave.Name, stack.TemplateFile)
 	}
