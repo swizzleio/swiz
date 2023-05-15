@@ -3,6 +3,6 @@ version: 1
 template_file: file://sleepstack.yaml
 params:
   SleepTestTime: 10
-  SleepTestFunctionArn: {{swiz-boot.SleepTestFunctionArn}}
-  LogLevel: {{LogLevel}}
-  VpcId: {{VpcId}}
+  SleepTestFunctionArn: "{{swiz-boot.SleepTestFunctionArn}}"
+  LogLevel: "{{LogLevel}}"
+  VpcId: "{{VpcId}}"
