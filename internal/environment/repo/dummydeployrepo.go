@@ -72,8 +72,8 @@ func (r *DummyDeloyRepo) ListEnvironments(enclave model.Enclave) ([]string, erro
 	fmt.Printf("ListEnvironments in enclave %v\n", enclave.Name)
 
 	enviromments := []string{
-		"env1",
-		"env2",
+		"awesomeEnv",
+		"anotherEnv",
 	}
 
 	return enviromments, nil

@@ -11,10 +11,25 @@ func init() {
 		Name:   "create",
 		Usage:  "TBD",
 		Action: envCreateCmd,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "name",
+				Aliases:  []string{"n"},
+				Usage:    "Name of the environment",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:        "envDef",
+				Aliases:     []string{"d"},
+				Usage:       "Environment definition to use",
+				DefaultText: "",
+			},
+		},
 	})
 }
 
 func envCreateCmd(ctx *cli.Context) error {
+	envDef := ctx.String("envDef")
 	envName := ctx.String("name")
 
 	svc, err := environment.NewEnvService(appConfig)
@@ -22,5 +37,5 @@ func envCreateCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	return svc.CreateEnvironment("dev", envName)
+	return svc.CreateEnvironment("dev", envDef, envName)
 }

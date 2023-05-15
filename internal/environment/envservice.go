@@ -30,7 +30,7 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	}, nil
 }
 
-func (s *EnvService) CreateEnvironment(enclaveName string, envDef string) error {
+func (s *EnvService) CreateEnvironment(enclaveName string, envDef string, envName string) error {
 
 	enclave, err := s.enclaveRepo.GetEnclave(enclaveName)
 	if err != nil {
@@ -40,14 +40,14 @@ func (s *EnvService) CreateEnvironment(enclaveName string, envDef string) error 
 		return fmt.Errorf("enclave %s not found", enclaveName)
 	}
 
-	// Check to see if the environment already exists
-
+	// Get environment definition
 	env, err := s.envRepo.GetEnvironmentByDef(envDef)
 	if err != nil {
 		return err
 	}
 
 	// TODO: Determine dependency order
+	// TODO: Check if environment already exists
 
 	// Create stacks
 	for _, stack := range env.Stacks {
