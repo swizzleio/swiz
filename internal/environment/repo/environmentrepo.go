@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/environment/model"
 	"github.com/swizzleio/swiz/pkg/errtype"
@@ -59,6 +60,7 @@ func (r *EnvironmentRepo) GetEnvironmentByDef(envDef string) (*model.Environment
 		for _, stackCfg := range envCfg.StackCfgDef {
 			stack, err := fileutil.YamlFromLocationWithBaseDir[model.StackConfig](r.baseDir, stackCfg.ConfigFile)
 			if err != nil {
+				// TODO: Check if error is due to handlebars incomptability
 				// Unlike environment, a stack error is fatal
 				return nil, err
 			}
