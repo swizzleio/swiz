@@ -7,5 +7,7 @@ config:
 stack_cfg:
   - name: swiz-boot
     config_file: file://bootstrapstack-cfg.yaml
+    order: 1
   - name: swiz-sleep
     config_file: file://sleepstack-cfg.yaml
+    order: 2

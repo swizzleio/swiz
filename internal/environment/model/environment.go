@@ -10,6 +10,7 @@ type EnvironmentConfig struct {
 	StackCfgDef []struct {
 		Name       string `yaml:"name"`
 		ConfigFile string `yaml:"config_file"`
+		Order      int    `yaml:"order"`
 	} `yaml:"stack_cfg"`
 	Stacks map[string]*StackConfig
 }
