@@ -47,15 +47,27 @@ func (s *EnvService) CreateEnvironment(enclaveName string, envDef string, envNam
 	}
 
 	// TODO: Determine dependency order
-	// TODO: Check if environment already exists
+
+	// Check if environment already exists
+	envInfo, err := s.iacDeploy.GetEnvironment(*enclave, envName)
+	if err != nil {
+
+	}
+	if envInfo != nil {
+		return fmt.Errorf("environment %s already exists", envName)
+		// TODO: Handle update if the env already exists
+	}
 
 	// Create stacks
 	for _, stack := range env.Stacks {
 		params := map[string]string{
 			"envName": envName,
 		}
-		
-		s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params)
+
+		createErr := s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params)
+		if createErr != nil {
+			return err
+		}
 	}
 
 	return nil

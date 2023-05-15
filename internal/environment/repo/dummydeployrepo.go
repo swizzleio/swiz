@@ -8,10 +8,13 @@ import (
 )
 
 type DummyDeloyRepo struct {
+	envs map[string]*EnvironmentInfo
 }
 
 func NewDummyDeloyRepo(config appconfig.AppConfig) IacDeployer {
-	return &DummyDeloyRepo{}
+	return &DummyDeloyRepo{
+		envs: map[string]*EnvironmentInfo{},
+	}
 }
 
 func (r *DummyDeloyRepo) outputParams(params map[string]string) string {
@@ -26,6 +29,30 @@ func (r *DummyDeloyRepo) CreateStack(enclave model.Enclave, name string, templat
 	params map[string]string) error {
 	fmt.Printf("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, enclave.Name)
 	fmt.Println(r.outputParams(params))
+
+	r.envs[name] = &EnvironmentInfo{
+		EnvironmentName: name,
+		DeployStatus: DeployStatus{
+			Name:    name,
+			State:   StateComplete,
+			Reason:  "It's done",
+			Details: "An awesome environment has been created",
+		},
+		StackDeployStatus: []DeployStatus{
+			{
+				Name:    "swiz-boot",
+				State:   StateComplete,
+				Reason:  "It's done",
+				Details: "An awesome stack has been created",
+			},
+			{
+				Name:    "swiz-sleep",
+				State:   StateComplete,
+				Reason:  "It's done",
+				Details: "An awesome stack has been created",
+			},
+		},
+	}
 
 	return nil
 }
@@ -83,40 +110,16 @@ func (r *DummyDeloyRepo) ListStacks(enclave model.Enclave, envName string) ([]st
 func (r *DummyDeloyRepo) ListEnvironments(enclave model.Enclave) ([]string, error) {
 	fmt.Printf("ListEnvironments in enclave %v\n", enclave.Name)
 
-	enviromments := []string{
-		"awesomeEnv",
-		"anotherEnv",
+	envList := []string{}
+	for k, _ := range r.envs {
+		envList = append(envList, k)
 	}
 
-	return enviromments, nil
+	return envList, nil
 }
 
 func (r *DummyDeloyRepo) GetEnvironment(enclave model.Enclave, envName string) (*EnvironmentInfo, error) {
 	fmt.Printf("GetEnvironment: %v in enclave %v\n", envName, enclave.Name)
 
-	envInfo := &EnvironmentInfo{
-		EnvironmentName: envName,
-		DeployStatus: DeployStatus{
-			Name:    envName,
-			State:   StateComplete,
-			Reason:  "It's done",
-			Details: "An awesome environment has been created",
-		},
-		StackDeployStatus: []DeployStatus{
-			{
-				Name:    "swiz-boot",
-				State:   StateComplete,
-				Reason:  "It's done",
-				Details: "An awesome stack has been created",
-			},
-			{
-				Name:    "swiz-sleep",
-				State:   StateComplete,
-				Reason:  "It's done",
-				Details: "An awesome stack has been created",
-			},
-		},
-	}
-
-	return envInfo, nil
+	return r.envs[envName], nil
 }
