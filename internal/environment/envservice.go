@@ -51,7 +51,11 @@ func (s *EnvService) CreateEnvironment(enclaveName string, envDef string, envNam
 
 	// Create stacks
 	for _, stack := range env.Stacks {
-		s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile)
+		params := map[string]string{
+			"envName": envName,
+		}
+		
+		s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params)
 	}
 
 	return nil

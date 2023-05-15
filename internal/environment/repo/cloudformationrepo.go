@@ -12,7 +12,8 @@ func NewCloudFormationRepo(config appconfig.AppConfig) (IacDeployer, error) {
 	return &CloudFormationRepo{}, nil
 }
 
-func (r *CloudFormationRepo) CreateStack(enclave model.Enclave, name string, template string) error {
+func (r *CloudFormationRepo) CreateStack(enclave model.Enclave, name string, template string,
+	params map[string]string) error {
 	return nil
 }
 
@@ -20,7 +21,8 @@ func (r *CloudFormationRepo) DeleteStack(enclave model.Enclave, name string) err
 	return nil
 }
 
-func (r *CloudFormationRepo) UpdateStack(enclave model.Enclave, name string, template string) error {
+func (r *CloudFormationRepo) UpdateStack(enclave model.Enclave, name string, template string,
+	params map[string]string) error {
 	return nil
 }
 

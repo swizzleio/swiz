@@ -14,8 +14,18 @@ func NewDummyDeloyRepo(config appconfig.AppConfig) IacDeployer {
 	return &DummyDeloyRepo{}
 }
 
-func (r *DummyDeloyRepo) CreateStack(enclave model.Enclave, name string, template string) error {
-	fmt.Printf("CreateStack: %v with template %v in enclave %s\n", name, template, enclave.Name)
+func (r *DummyDeloyRepo) outputParams(params map[string]string) string {
+	output := ""
+	for k, v := range params {
+		output += fmt.Sprintf("  %s : %s\n", k, v)
+	}
+	return output
+}
+
+func (r *DummyDeloyRepo) CreateStack(enclave model.Enclave, name string, template string,
+	params map[string]string) error {
+	fmt.Printf("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, enclave.Name)
+	fmt.Println(r.outputParams(params))
 
 	return nil
 }
@@ -26,8 +36,10 @@ func (r *DummyDeloyRepo) DeleteStack(enclave model.Enclave, name string) error {
 	return nil
 }
 
-func (r *DummyDeloyRepo) UpdateStack(enclave model.Enclave, name string, template string) error {
-	fmt.Printf("UpdateStack: %v with template %v in enclave %v\n", name, template, enclave.Name)
+func (r *DummyDeloyRepo) UpdateStack(enclave model.Enclave, name string, template string,
+	params map[string]string) error {
+	fmt.Printf("UpdateStack: %v with template %v in enclave %v. Params: \n", name, template, enclave.Name)
+	fmt.Println(r.outputParams(params))
 
 	return nil
 }
