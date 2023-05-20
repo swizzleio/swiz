@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/swizzleio/swiz/internal/appconfig"
+	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
 )
 
@@ -91,7 +92,7 @@ func (r *DummyDeloyRepo) GetStackOutputs(enclave model.Enclave, name string) (ma
 	fmt.Printf("GetStackOutputs: %v in enclave %v\n", name, enclave.Name)
 
 	outputs := map[string]string{
-		"swiz-boot.SleepTestFunctionArn": "arn:aws:lambda:us-east-1:123456789:function:SleepTestFunction",
+		"SleepTestFunctionArn": "arn:aws:lambda:us-east-1:123456789:function:SleepTestFunction",
 	}
 	return outputs, nil
 }
@@ -121,5 +122,11 @@ func (r *DummyDeloyRepo) ListEnvironments(enclave model.Enclave) ([]string, erro
 func (r *DummyDeloyRepo) GetEnvironment(enclave model.Enclave, envName string) (*EnvironmentInfo, error) {
 	fmt.Printf("GetEnvironment: %v in enclave %v\n", envName, enclave.Name)
 
-	return r.envs[envName], nil
+	env := r.envs[envName]
+
+	if env == nil {
+		return nil, apperr.NewNotFoundError("environment", envName)
+	}
+
+	return env, nil
 }

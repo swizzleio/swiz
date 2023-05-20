@@ -3,6 +3,7 @@ package model
 type StackConfig struct {
 	Version      int `yaml:"version"`
 	Name         string
-	Parameters   map[string]interface{} `yaml:"params"`
-	TemplateFile string                 `yaml:"template_file"`
+	Order        int
+	Parameters   map[string]string `yaml:"params"`
+	TemplateFile string            `yaml:"template_file"`
 }

@@ -1,9 +1,12 @@
 package environment
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/swizzleio/swiz/internal/appconfig"
+	"github.com/swizzleio/swiz/internal/apperr"
+	"github.com/swizzleio/swiz/internal/environment/model"
 	"github.com/swizzleio/swiz/internal/environment/repo"
 )
 
@@ -37,7 +40,7 @@ func (s *EnvService) CreateEnvironment(enclaveName string, envDef string, envNam
 		return err
 	}
 	if enclave == nil {
-		return fmt.Errorf("enclave %s not found", enclaveName)
+		return apperr.NewNotFoundError("enclave", enclaveName)
 	}
 
 	// Get environment definition
@@ -46,29 +49,69 @@ func (s *EnvService) CreateEnvironment(enclaveName string, envDef string, envNam
 		return err
 	}
 
-	// TODO: Determine dependency order
+	// Init param store
+	ps := NewParamStore(env.Config[enclaveName].Parameters)
 
 	// Check if environment already exists
 	envInfo, err := s.iacDeploy.GetEnvironment(*enclave, envName)
-	if err != nil {
-
+	if err != nil && !errors.Is(err, apperr.GenNotFoundError) {
+		return err
 	}
 	if envInfo != nil {
 		return fmt.Errorf("environment %s already exists", envName)
 		// TODO: Handle update if the env already exists
 	}
 
+	// Determine dependency order
+	stackDeps := s.buildDependencyOrder(env.Stacks)
+
 	// Create stacks
-	for _, stack := range env.Stacks {
-		params := map[string]string{
-			"envName": envName,
+	for _, stackDeps := range stackDeps {
+		for _, stack := range stackDeps {
+			params := ps.getParams(stack.Parameters)
+
+			createErr := s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params)
+			if createErr != nil {
+				return err
+			}
+
+			out, err := s.iacDeploy.GetStackOutputs(*enclave, stack.Name)
+			if err != nil {
+				return err
+			}
+
+			ps.setParams(stack.Name, out)
 		}
 
-		createErr := s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params)
-		if createErr != nil {
-			return err
-		}
+		// TODO, wait for completion
 	}
 
 	return nil
+}
+
+func (s EnvService) buildDependencyOrder(stacks map[string]*model.StackConfig) [][]*model.StackConfig {
+	// Figure out how many stack order buckets
+	maxSize := 0
+	for _, stack := range stacks {
+		if stack.Order < 0 {
+			continue
+		}
+
+		if stack.Order > maxSize {
+			maxSize = stack.Order
+		}
+	}
+
+	// Iterate through the stacks and determine the order. Note, 0 is a valid number.
+	// Yes this could be more efficent but it's not worth it
+	retVal := make([][]*model.StackConfig, maxSize+1)
+	for _, stack := range stacks {
+		if retVal[stack.Order] == nil {
+			retVal[stack.Order] = []*model.StackConfig{}
+		}
+
+		retVal[stack.Order] = append(retVal[stack.Order], stack)
+	}
+
+	return retVal
 }

@@ -1,9 +1,10 @@
 version: 1
 config:
-  - enclave: dev
+  dev:
     params:
       LogLevel: DEBUG
       VpcId: vpc-0123456789abcdef0
+      DomainName: example.com
 stack_cfg:
   - name: swiz-boot
     config_file: file://bootstrapstack-cfg.yaml

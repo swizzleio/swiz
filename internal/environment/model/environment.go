@@ -1,16 +1,19 @@
 package model
 
+type EnvironmentConfigDef struct {
+	Parameters map[string]string `yaml:"params"`
+}
+
+type StackConfigDef struct {
+	Name       string `yaml:"name"`
+	ConfigFile string `yaml:"config_file"`
+	Order      int    `yaml:"order"`
+}
+
 type EnvironmentConfig struct {
-	EnvDefName string
-	Version    int `yaml:"version"`
-	Config     []struct {
-		Enclave    string                 `yaml:"enclave"`
-		Parameters map[string]interface{} `yaml:"params"`
-	} `yaml:"config"`
-	StackCfgDef []struct {
-		Name       string `yaml:"name"`
-		ConfigFile string `yaml:"config_file"`
-		Order      int    `yaml:"order"`
-	} `yaml:"stack_cfg"`
-	Stacks map[string]*StackConfig
+	EnvDefName  string
+	Version     int                             `yaml:"version"`
+	Config      map[string]EnvironmentConfigDef `yaml:"config"`
+	StackCfgDef []StackConfigDef                `yaml:"stack_cfg"`
+	Stacks      map[string]*StackConfig
 }

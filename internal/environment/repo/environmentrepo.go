@@ -66,6 +66,7 @@ func (r *EnvironmentRepo) GetEnvironmentByDef(envDef string) (*model.Environment
 			}
 
 			stack.Name = stackCfg.Name
+			stack.Order = stackCfg.Order
 			envCfg.Stacks[stackCfg.Name] = stack
 		}
 	}

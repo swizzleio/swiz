@@ -5,5 +5,4 @@ type Enclave struct {
 	ProviderId string `yaml:"provider_id"`
 	AccountId  string `yaml:"account_id"`
 	Region     string `yaml:"region"`
-	DomainName string `yaml:"domain_name"`
 }
