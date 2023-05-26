@@ -9,12 +9,12 @@ import (
 )
 
 type DummyDeloyRepo struct {
-	envs map[string]*EnvironmentInfo
+	envs map[string]*model.EnvironmentInfo
 }
 
 func NewDummyDeloyRepo(config appconfig.AppConfig) IacDeployer {
 	return &DummyDeloyRepo{
-		envs: map[string]*EnvironmentInfo{},
+		envs: map[string]*model.EnvironmentInfo{},
 	}
 }
 
@@ -31,24 +31,24 @@ func (r *DummyDeloyRepo) CreateStack(enclave model.Enclave, name string, templat
 	fmt.Printf("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, enclave.Name)
 	fmt.Println(r.outputParams(params))
 
-	r.envs[name] = &EnvironmentInfo{
+	r.envs[name] = &model.EnvironmentInfo{
 		EnvironmentName: name,
-		DeployStatus: DeployStatus{
+		DeployStatus: model.DeployStatus{
 			Name:    name,
-			State:   StateComplete,
+			State:   model.StateComplete,
 			Reason:  "It's done",
 			Details: "An awesome environment has been created",
 		},
-		StackDeployStatus: []DeployStatus{
+		StackDeployStatus: []model.DeployStatus{
 			{
 				Name:    "swiz-boot",
-				State:   StateComplete,
+				State:   model.StateComplete,
 				Reason:  "It's done",
 				Details: "An awesome stack has been created",
 			},
 			{
 				Name:    "swiz-sleep",
-				State:   StateComplete,
+				State:   model.StateComplete,
 				Reason:  "It's done",
 				Details: "An awesome stack has been created",
 			},
@@ -72,14 +72,14 @@ func (r *DummyDeloyRepo) UpdateStack(enclave model.Enclave, name string, templat
 	return nil
 }
 
-func (r *DummyDeloyRepo) GetStackInfo(enclave model.Enclave, name string) (*StackInfo, error) {
+func (r *DummyDeloyRepo) GetStackInfo(enclave model.Enclave, name string) (*model.StackInfo, error) {
 	fmt.Printf("GetStackInfo: %v in enclave %v\n", name, enclave.Name)
 
-	stackInfo := &StackInfo{
+	stackInfo := &model.StackInfo{
 		Name: name,
-		DeployStatus: DeployStatus{
+		DeployStatus: model.DeployStatus{
 			Name:    name,
-			State:   StateComplete,
+			State:   model.StateComplete,
 			Reason:  "It's done",
 			Details: "An awesome stack has been created",
 		},
@@ -119,7 +119,7 @@ func (r *DummyDeloyRepo) ListEnvironments(enclave model.Enclave) ([]string, erro
 	return envList, nil
 }
 
-func (r *DummyDeloyRepo) GetEnvironment(enclave model.Enclave, envName string) (*EnvironmentInfo, error) {
+func (r *DummyDeloyRepo) GetEnvironment(enclave model.Enclave, envName string) (*model.EnvironmentInfo, error) {
 	fmt.Printf("GetEnvironment: %v in enclave %v\n", envName, enclave.Name)
 
 	env := r.envs[envName]

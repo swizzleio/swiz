@@ -33,7 +33,12 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	}, nil
 }
 
-func (s *EnvService) CreateEnvironment(enclaveName string, envDef string, envName string) error {
+func (s *EnvService) DeployEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
+	noUpdate bool) error {
+
+	// TODO: Mimic the cloudformation deploy command:
+	// https://stackoverflow.com/questions/49945531/aws-cloudformation-create-stack-vs-deploy
+	// https://www.quora.com/How-does-AWS-CloudFormation-determine-whether-to-create-new-resources-or-updating-existing-ones-when-doing-a-deploy
 
 	enclave, err := s.enclaveRepo.GetEnclave(enclaveName)
 	if err != nil {
@@ -87,6 +92,27 @@ func (s *EnvService) CreateEnvironment(enclaveName string, envDef string, envNam
 	}
 
 	return nil
+}
+
+func (s *EnvService) DeleteEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
+	noOrphanDelete bool, fastDelete bool) error {
+	// TODO: Implement
+
+	return nil
+}
+
+func (s *EnvService) ListEnvironments(enclaveName string) ([]string, error) {
+	// TODO: Implement
+
+	return []string{}, nil
+}
+
+func (s *EnvService) GetEnvironmentInfo(enclaveName string, envName string) (*model.EnvironmentInfo, error) {
+	// TODO: Implement
+
+	return &model.EnvironmentInfo{
+		StackDeployStatus: []model.DeployStatus{},
+	}, nil
 }
 
 func (s EnvService) buildDependencyOrder(stacks map[string]*model.StackConfig) [][]*model.StackConfig {

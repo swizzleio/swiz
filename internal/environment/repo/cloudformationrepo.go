@@ -26,7 +26,7 @@ func (r *CloudFormationRepo) UpdateStack(enclave model.Enclave, name string, tem
 	return nil
 }
 
-func (r *CloudFormationRepo) GetStackInfo(enclave model.Enclave, name string) (*StackInfo, error) {
+func (r *CloudFormationRepo) GetStackInfo(enclave model.Enclave, name string) (*model.StackInfo, error) {
 	return nil, nil
 }
 
@@ -42,6 +42,6 @@ func (r *CloudFormationRepo) ListEnvironments(enclave model.Enclave) ([]string, 
 	return nil, nil
 }
 
-func (r *CloudFormationRepo) GetEnvironment(enclave model.Enclave, envName string) (*EnvironmentInfo, error) {
+func (r *CloudFormationRepo) GetEnvironment(enclave model.Enclave, envName string) (*model.EnvironmentInfo, error) {
 	return nil, nil
 }

@@ -2,14 +2,15 @@ package cmd
 
 import (
 	"github.com/swizzleio/swiz/internal/environment"
+
 	"github.com/urfave/cli/v2"
 )
 
 func init() {
 	addSubCommand("env", &cli.Command{
-		Name:   "delete",
-		Usage:  "Delete an environment",
-		Action: envDeleteCmd,
+		Name:   "deploy",
+		Usage:  "Deploy an environment. If the env already exists, it will be updated",
+		Action: envCreateCmd,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:     "name",
@@ -34,29 +35,24 @@ func init() {
 				Usage: "If this is a dry run (also similar to plan)",
 			},
 			&cli.BoolFlag{
-				Name:  "no-orphan-delete",
-				Usage: "Do not attempt to delete orphan stacks. Can be overriden in config",
-			},
-			&cli.BoolFlag{
-				Name:  "fast-delete",
-				Usage: "Delete everything in parallel. Can be overridden in config",
+				Name:  "no-update-deploy",
+				Usage: "Fail if a stack or environment already exists. Can be overriden in config",
 			},
 		},
 	})
 }
 
-func envDeleteCmd(ctx *cli.Context) error {
+func envCreateCmd(ctx *cli.Context) error {
 	enclave := ctx.String("enclave")
 	envDef := ctx.String("env-def")
 	envName := ctx.String("name")
 	dryRun := ctx.Bool("dry-run")
-	noOrphanDelete := ctx.Bool("no-orphan-delete")
-	fastDelete := ctx.Bool("fast-delete")
+	noUpdate := ctx.Bool("no-update-deploy")
 
 	svc, err := environment.NewEnvService(appConfig)
 	if err != nil {
 		return err
 	}
 
-	return svc.DeleteEnvironment(enclave, envDef, envName, dryRun, noOrphanDelete, fastDelete)
+	return svc.DeployEnvironment(enclave, envDef, envName, dryRun, noUpdate)
 }

@@ -28,7 +28,7 @@
                 "--appconfig",
                 "file://test/data/cloudformation/app-config.yaml",
                 "env",
-                "create",
+                "deploy",
                 "--name",
                 "awesomeEnv"
             ]

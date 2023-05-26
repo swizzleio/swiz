@@ -17,3 +17,9 @@ type EnvironmentConfig struct {
 	StackCfgDef []StackConfigDef                `yaml:"stack_cfg"`
 	Stacks      map[string]*StackConfig
 }
+
+type EnvironmentInfo struct {
+	EnvironmentName   string
+	DeployStatus      DeployStatus
+	StackDeployStatus []DeployStatus
+}
