@@ -15,7 +15,7 @@ func (e *ErrList) Error() string {
 		errStr = append(errStr, err.Error())
 	}
 
-	return fmt.Sprintf("multiple errrs: %v", strings.Join(errStr, ", "))
+	return fmt.Sprintf("multiple errors: %v", strings.Join(errStr, ", "))
 }
 
 func (e *ErrList) ErrOrNil() error {
