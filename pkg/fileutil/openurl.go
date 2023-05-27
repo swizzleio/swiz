@@ -31,20 +31,40 @@ func OpenUrl(location string) ([]byte, error) {
 }
 
 func OpenUrlWithBaseDir(baseDir string, location string) ([]byte, error) {
+	fullLocation, err := UrlWithBaseDir(baseDir, location)
+	if err != nil {
+		return nil, err
+	}
+
 	// Determine the protocol
-	u, err := url.Parse(location)
+	u, err := url.Parse(fullLocation)
 	if err != nil {
 		return nil, err
 	}
 
 	switch u.Scheme {
 	case "file":
-		return fileGet(path.Join(path.Join(baseDir, u.Host), u.Path))
+		return fileGet(path.Join(u.Host, u.Path))
 	case "http":
-		return httpGet(location)
+		return httpGet(fullLocation)
 	}
 
 	return nil, fmt.Errorf("unsupported protocol: %s", u.Scheme)
+}
+
+func UrlWithBaseDir(baseDir string, location string) (string, error) {
+	// Determine the protocol
+	u, err := url.Parse(location)
+	if err != nil {
+		return "", err
+	}
+
+	switch u.Scheme {
+	case "file":
+		return fmt.Sprintf("%v://%v", u.Scheme, path.Join(path.Join(baseDir, u.Host), u.Path)), nil
+	}
+
+	return location, nil
 }
 
 func WriteUrl(location string, data []byte) error {
