@@ -65,6 +65,12 @@ func (r *EnvironmentRepo) GetEnvironmentByDef(envDef string) (*model.Environment
 				return nil, err
 			}
 
+			templateFile, err := fileutil.UrlWithBaseDir(r.baseDir, stack.TemplateFile)
+			if err != nil {
+				return nil, err
+			}
+
+			stack.TemplateFile = templateFile
 			stack.Name = stackCfg.Name
 			stack.Order = stackCfg.Order
 			envCfg.Stacks[stackCfg.Name] = stack

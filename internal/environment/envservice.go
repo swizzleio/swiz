@@ -3,7 +3,6 @@ package environment
 import (
 	"errors"
 	"fmt"
-
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
@@ -69,8 +68,8 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 	stackDeps := s.buildDependencyOrder(env.Stacks)
 
 	// Create stacks
-	for _, stackDeps := range stackDeps {
-		for _, stack := range stackDeps {
+	for _, stackDep := range stackDeps {
+		for _, stack := range stackDep {
 			params := ps.getParams(stack.Parameters)
 
 			createErr := s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params)
