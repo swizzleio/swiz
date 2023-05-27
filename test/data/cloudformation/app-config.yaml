@@ -4,6 +4,7 @@ env_def:
   - name: SleepySleep
     env_def_file: file://env-def.yaml
     default: true
+default_enclave: dev
 enclave_def:
   - name: dev
     provider_id: AWS

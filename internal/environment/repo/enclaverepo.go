@@ -7,12 +7,14 @@ import (
 )
 
 type EnclaveRepo struct {
-	enclaves map[string]*model.Enclave
+	enclaves       map[string]*model.Enclave
+	defaultEnclave string
 }
 
 func NewEnclaveRepo(config appconfig.AppConfig) *EnclaveRepo {
 	retVal := &EnclaveRepo{
-		enclaves: map[string]*model.Enclave{},
+		enclaves:       map[string]*model.Enclave{},
+		defaultEnclave: config.DefaultEnclave,
 	}
 
 	for _, enclave := range config.EnclaveDefinition {
@@ -23,6 +25,10 @@ func NewEnclaveRepo(config appconfig.AppConfig) *EnclaveRepo {
 }
 
 func (r *EnclaveRepo) GetEnclave(name string) (*model.Enclave, error) {
+	if name == "" {
+		name = r.defaultEnclave
+	}
+
 	if enclave, ok := r.enclaves[name]; ok {
 		return enclave, nil
 	}

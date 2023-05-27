@@ -25,6 +25,7 @@ type AppConfig struct {
 	Version           int             `yaml:"version"`
 	EnvDefinition     []EnvDef        `yaml:"env_def"`
 	EnclaveDefinition []model.Enclave `yaml:"enclave_def"`
+	DefaultEnclave    string          `yaml:"default_enclave"`
 	DisabledCommands  []string        `yaml:"disabled_commands"`
 	BaseDir           string
 }
