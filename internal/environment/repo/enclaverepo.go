@@ -2,7 +2,6 @@ package repo
 
 import (
 	"fmt"
-	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/environment/model"
 )
 
@@ -11,13 +10,13 @@ type EnclaveRepo struct {
 	defaultEnclave string
 }
 
-func NewEnclaveRepo(config appconfig.AppConfig) *EnclaveRepo {
+func NewEnclaveRepo(envDef model.EnvironmentConfig) *EnclaveRepo {
 	retVal := &EnclaveRepo{
 		enclaves:       map[string]*model.Enclave{},
-		defaultEnclave: config.DefaultEnclave,
+		defaultEnclave: envDef.DefaultEnclave,
 	}
 
-	for _, enclave := range config.EnclaveDefinition {
+	for _, enclave := range envDef.EnclaveDefinition {
 		retVal.enclaves[enclave.Name] = &enclave
 	}
 

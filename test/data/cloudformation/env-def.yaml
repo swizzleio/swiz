@@ -1,6 +1,14 @@
 version: 1
-config:
-  dev:
+default_enclave: dev
+enclave_def:
+  - name: dev
+    default_provider: AwsDev
+    providers:
+      - name: AwsDev # Currently only a single provider is supported
+        provider_id: AWS
+        account_id: 123456789012
+        region: us-east-1
+    domain_name: example.com
     params:
       LogLevel: DEBUG
       VpcId: vpc-0123456789abcdef0

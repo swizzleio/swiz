@@ -2,7 +2,6 @@ package appconfig
 
 import (
 	"encoding/base64"
-	"fmt"
 	"github.com/swizzleio/swiz/internal/environment/model"
 	"github.com/swizzleio/swiz/pkg/configutil"
 	"github.com/swizzleio/swiz/pkg/drivers/awswrap"
@@ -22,12 +21,10 @@ type EnvDef struct {
 }
 
 type AppConfig struct {
-	Version           int             `yaml:"version"`
-	EnvDefinition     []EnvDef        `yaml:"env_def"`
-	EnclaveDefinition []model.Enclave `yaml:"enclave_def"`
-	DefaultEnclave    string          `yaml:"default_enclave"`
-	DisabledCommands  []string        `yaml:"disabled_commands"`
-	BaseDir           string
+	Version          int      `yaml:"version"`
+	EnvDefinition    []EnvDef `yaml:"env_def"`
+	DisabledCommands []string `yaml:"disabled_commands"`
+	BaseDir          string
 }
 
 type Base64Resp struct {
@@ -71,22 +68,15 @@ func Generate(enclave model.Enclave, env EnvDef) error {
 
 	// Set defaults if not set
 	enclave.Name = configutil.SetOrDefault[string](enclave.Name, awswrap.DefaultAccountName)
-	enclave.ProviderId = configutil.SetOrDefault[string](enclave.ProviderId, ProviderIds[0])
-	enclave.Region = configutil.SetOrDefault[string](enclave.Name, awswrap.DefaultRegion)
 
 	env.Name = configutil.SetOrDefault[string](env.Name, "default")
 	env.Default = configutil.SetOrDefault[bool](env.Default, true)
 
-	// Check for mandatory fields
-	if enclave.AccountId == "" || env.EnvDefFile == "" {
-		return fmt.Errorf("missing mandatory fields of account id or env def file")
-	}
-
 	// Save app config to yaml
 	cfg := AppConfig{
-		Version:           1,
-		EnvDefinition:     []EnvDef{env},
-		EnclaveDefinition: []model.Enclave{enclave},
+		Version:          1,
+		EnvDefinition:    []EnvDef{env},
+		DisabledCommands: []string{},
 	}
 
 	return fileutil.YamlToLocation(DefaultLocation, cfg)

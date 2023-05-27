@@ -4,11 +4,4 @@ env_def:
   - name: SleepySleep
     env_def_file: file://env-def.yaml
     default: true
-default_enclave: dev
-enclave_def:
-  - name: dev
-    provider_id: AWS
-    account_id: 123456789012
-    region: us-east-1
-    domain_name: example.com
 disabled_commands: [version]

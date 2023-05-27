@@ -11,9 +11,8 @@ import (
 )
 
 type EnvService struct {
-	enclaveRepo *repo.EnclaveRepo
-	envRepo     *repo.EnvironmentRepo
-	iacDeploy   repo.IacDeployer
+	envRepo   *repo.EnvironmentRepo
+	iacDeploy repo.IacDeployer
 }
 
 func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
@@ -25,28 +24,18 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	if err != nil {
 		return nil, err
 	}
-	enclaveRepo := repo.NewEnclaveRepo(*config)
 	return &EnvService{
-		envRepo:     envRepo,
-		enclaveRepo: enclaveRepo,
-		iacDeploy:   repo.NewDummyDeloyRepo(*config),
+		envRepo:   envRepo,
+		iacDeploy: repo.NewDummyDeloyRepo(*config),
 	}, nil
 }
 
-func (s *EnvService) DeployEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
+func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
 	noUpdate bool) error {
 
 	// TODO: Mimic the cloudformation deploy command:
 	// https://stackoverflow.com/questions/49945531/aws-cloudformation-create-stack-vs-deploy
 	// https://www.quora.com/How-does-AWS-CloudFormation-determine-whether-to-create-new-resources-or-updating-existing-ones-when-doing-a-deploy
-
-	enclave, err := s.enclaveRepo.GetEnclave(enclaveName)
-	if err != nil {
-		return err
-	}
-	if enclave == nil {
-		return apperr.NewNotFoundError("enclave", enclaveName)
-	}
 
 	// Get environment definition
 	env, err := s.envRepo.GetEnvironmentByDef(envDef)
@@ -54,8 +43,17 @@ func (s *EnvService) DeployEnvironment(enclaveName string, envDef string, envNam
 		return err
 	}
 
+	enclaveRepo := repo.NewEnclaveRepo(*env)
+	enclave, err := enclaveRepo.GetEnclave(enclaveName)
+	if err != nil {
+		return err
+	}
+	if enclave == nil {
+		return apperr.NewNotFoundError("enclave", enclaveName)
+	}
+
 	// Init param store
-	ps := NewParamStore(env.Config[enclaveName].Parameters)
+	ps := NewParamStore(enclave.Parameters)
 
 	// Check if environment already exists
 	envInfo, err := s.iacDeploy.GetEnvironment(*enclave, envName)
@@ -94,20 +92,20 @@ func (s *EnvService) DeployEnvironment(enclaveName string, envDef string, envNam
 	return nil
 }
 
-func (s *EnvService) DeleteEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
+func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
 	noOrphanDelete bool, fastDelete bool) error {
 	// TODO: Implement
 
 	return nil
 }
 
-func (s *EnvService) ListEnvironments(enclaveName string) ([]string, error) {
+func (s EnvService) ListEnvironments(enclaveName string) ([]string, error) {
 	// TODO: Implement
 
 	return []string{}, nil
 }
 
-func (s *EnvService) GetEnvironmentInfo(enclaveName string, envName string) (*model.EnvironmentInfo, error) {
+func (s EnvService) GetEnvironmentInfo(enclaveName string, envName string) (*model.EnvironmentInfo, error) {
 	// TODO: Implement
 
 	return &model.EnvironmentInfo{
