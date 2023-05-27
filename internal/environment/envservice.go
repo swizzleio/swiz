@@ -7,12 +7,17 @@ import (
 	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
 	"github.com/swizzleio/swiz/internal/environment/repo"
+	"time"
 )
 
 type EnvService struct {
 	envRepo   *repo.EnvironmentRepo
 	iacDeploy repo.IacDeployer
 }
+
+const (
+	POLL_INTERVAL_SEC = 5
+)
 
 func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	if config == nil {
@@ -69,7 +74,8 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 
 	// Create stacks
 	for _, stackDep := range stackDeps {
-		for _, stack := range stackDep {
+		stackList := make([]string, len(stackDep))
+		for i, stack := range stackDep {
 			params := ps.getParams(stack.Parameters)
 
 			createErr := s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params)
@@ -77,15 +83,28 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 				return err
 			}
 
-			out, err := s.iacDeploy.GetStackOutputs(*enclave, stack.Name)
-			if err != nil {
-				return err
+			out, oerr := s.iacDeploy.GetStackOutputs(*enclave, stack.Name)
+			if oerr != nil {
+				return oerr
 			}
 
 			ps.setParams(stack.Name, out)
+			stackList[i] = stack.Name
 		}
 
-		// TODO, wait for completion
+		// Wait for completion
+		stopPoll := false
+		for !stopPoll {
+			var envErr error
+			stopPoll, envErr = s.iacDeploy.IsEnvironmentReady(*enclave, envName, stackList)
+			if envErr != nil {
+				return envErr
+			}
+
+			if !stopPoll {
+				time.Sleep(POLL_INTERVAL_SEC * time.Second)
+			}
+		}
 	}
 
 	return nil

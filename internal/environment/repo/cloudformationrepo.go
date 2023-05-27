@@ -45,3 +45,7 @@ func (r *CloudFormationRepo) ListEnvironments(enclave model.Enclave) ([]string, 
 func (r *CloudFormationRepo) GetEnvironment(enclave model.Enclave, envName string) (*model.EnvironmentInfo, error) {
 	return nil, nil
 }
+
+func (r *CloudFormationRepo) IsEnvironmentReady(enclave model.Enclave, envName string, stacks []string) (bool, error) {
+	return true, nil
+}

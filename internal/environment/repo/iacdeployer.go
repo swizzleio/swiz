@@ -13,4 +13,5 @@ type IacDeployer interface {
 	ListStacks(enclave model.Enclave, envName string) ([]string, error)
 	ListEnvironments(enclave model.Enclave) ([]string, error)
 	GetEnvironment(enclave model.Enclave, envName string) (*model.EnvironmentInfo, error)
+	IsEnvironmentReady(enclave model.Enclave, envName string, stacks []string) (bool, error)
 }

@@ -2,6 +2,8 @@ package repo
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/apperr"
@@ -9,12 +11,14 @@ import (
 )
 
 type DummyDeloyRepo struct {
-	envs map[string]*model.EnvironmentInfo
+	envs       map[string]*model.EnvironmentInfo
+	deployTime map[string]time.Time
 }
 
 func NewDummyDeloyRepo(config appconfig.AppConfig) IacDeployer {
 	return &DummyDeloyRepo{
-		envs: map[string]*model.EnvironmentInfo{},
+		envs:       map[string]*model.EnvironmentInfo{},
+		deployTime: map[string]time.Time{},
 	}
 }
 
@@ -31,6 +35,22 @@ func (r *DummyDeloyRepo) CreateStack(enclave model.Enclave, name string, templat
 	fmt.Printf("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, enclave.Name)
 	fmt.Println(r.outputParams(params))
 
+	/*
+		cfYaml, err := fileutil.YamlFromLocation[map[string]interface{}](template)
+		if err != nil {
+			return err
+		}
+		fmt.Println("%v\n", cfYaml)
+	*/
+
+	// Set a dummy deploy time
+	timeLen, err := strconv.Atoi(params["SleepTestTime"])
+	if err != nil {
+		timeLen = 2
+	}
+	r.deployTime[name] = time.Now().Add(time.Duration(timeLen+4) * time.Second)
+
+	// Print the environment info
 	r.envs[name] = &model.EnvironmentInfo{
 		EnvironmentName: name,
 		DeployStatus: model.DeployStatus{
@@ -129,4 +149,19 @@ func (r *DummyDeloyRepo) GetEnvironment(enclave model.Enclave, envName string) (
 	}
 
 	return env, nil
+}
+
+func (r *DummyDeloyRepo) IsEnvironmentReady(enclave model.Enclave, envName string, stacks []string) (bool, error) {
+	// check to see if r.deployTime[name] is past the current time
+	// if it is, then set the state to complete
+	// if it isn't, then set the state to in progress
+	stacksComplete := 0
+
+	for _, stack := range stacks {
+		if r.deployTime[stack].Before(time.Now()) {
+			stacksComplete++
+		}
+	}
+
+	return stacksComplete == len(stacks), nil
 }
