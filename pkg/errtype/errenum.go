@@ -6,11 +6,33 @@ import (
 
 type ErrEnum[T fmt.Stringer] struct {
 	Enum    T
+	Subject string
+	Noun    string
 	details string
 }
 
+func NewErrEnum[T fmt.Stringer](enum T, subject string, noun string, details string) *ErrEnum[T] {
+	return &ErrEnum[T]{
+		Enum:    enum,
+		Subject: subject,
+		Noun:    noun,
+		details: details,
+	}
+}
+
+func NewSimpleErrEnum[T fmt.Stringer](enum T, details string) *ErrEnum[T] {
+	return &ErrEnum[T]{
+		Enum:    enum,
+		details: details,
+	}
+}
+
 func (e *ErrEnum[T]) Error() string {
-	retVal := fmt.Sprintf("error of type %v", e.Enum.String())
+	prepend := ""
+	if e.Subject != "" {
+		prepend = fmt.Sprintf(" in %v %v", e.Subject, e.Noun)
+	}
+	retVal := fmt.Sprintf("error%v of type %v", prepend, e.Enum.String())
 	if e.details != "" {
 		retVal += fmt.Sprintf(": %v", e.details)
 	}
