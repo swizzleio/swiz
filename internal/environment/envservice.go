@@ -135,13 +135,13 @@ func (s EnvService) upsertStack(env *model.EnvironmentConfig, enclave *model.Enc
 	if getErr != nil {
 		if errors.Is(getErr, apperr.GenNotFoundError) {
 			// No new stack, create one
-			stackInfo, err = s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params, s.generateMetadata(envName, true), dryRun)
+			stackInfo, err = s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params, s.generateMetadata(envName, env.EnvDefName, enclave.Name, true), dryRun)
 		} else {
 			return nil, getErr
 		}
 	} else if !noUpdate {
 		// Update stack
-		stackInfo, err = s.iacDeploy.UpdateStack(*enclave, stack.Name, stack.TemplateFile, params, s.generateMetadata(envName, true), dryRun)
+		stackInfo, err = s.iacDeploy.UpdateStack(*enclave, stack.Name, stack.TemplateFile, params, s.generateMetadata(envName, env.EnvDefName, enclave.Name, false), dryRun)
 	} else {
 		// Stacks exists and no update requested
 		return nil, apperr.NewExistsError("stack", stack.Name)
@@ -162,7 +162,7 @@ func (s EnvService) generateStackName(env *model.EnvironmentConfig, envName stri
 	})
 }
 
-func (s EnvService) generateMetadata(envName string, isCreate bool) map[string]string {
+func (s EnvService) generateMetadata(envName string, envDef string, enclaveName string, isCreate bool) map[string]string {
 	retVal := map[string]string{
 		"SwzEnv": envName,
 	}
@@ -170,6 +170,8 @@ func (s EnvService) generateMetadata(envName string, isCreate bool) map[string]s
 	if isCreate {
 		retVal["SwzCreateDate"] = time.Now().Format(time.RFC3339)
 		retVal["SwzCreateUser"] = os.Getenv("USER")
+		retVal["SwzEnvDef"] = envDef
+		retVal["SwzEnclave"] = enclaveName
 	}
 
 	return retVal
