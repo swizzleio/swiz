@@ -72,13 +72,13 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 			params := ps.GetParams(stack.Parameters)
 
 			// Upsert stack
-			stackInfo, createUpErr := s.upsertStack(enclave, stack, params, noUpdate, dryRun)
+			stackInfo, createUpErr := s.upsertStack(env, enclave, envName, stack, params, noUpdate, dryRun)
 			if createUpErr != nil {
 				return nil, createUpErr
 			}
 
 			stackInfoList = append(stackInfoList, stackInfo)
-			stackList[i] = stack.Name
+			stackList[i] = stackInfo.Name
 		}
 
 		// Wait for completion
@@ -122,9 +122,13 @@ func (s EnvService) GetEnvironmentInfo(enclaveName string, envName string) (*mod
 	}, nil
 }
 
-func (s EnvService) upsertStack(enclave *model.Enclave, stack *model.StackConfig, params map[string]string, noUpdate bool, dryRun bool) (*model.StackInfo, error) {
+func (s EnvService) upsertStack(env *model.EnvironmentConfig, enclave *model.Enclave, envName string, stack *model.StackConfig, params map[string]string, noUpdate bool, dryRun bool) (*model.StackInfo, error) {
 	var err error
 	var stackInfo *model.StackInfo
+
+	// Generate stack name
+	stack.Name = s.generateStackName(env, envName, stack.Name)
+
 	// Check to see if stack exists
 	_, getErr := s.iacDeploy.GetStackInfo(*enclave, stack.Name)
 	if getErr != nil {
@@ -143,6 +147,18 @@ func (s EnvService) upsertStack(enclave *model.Enclave, stack *model.StackConfig
 	}
 
 	return stackInfo, err
+}
+
+func (s EnvService) generateStackName(env *model.EnvironmentConfig, envName string, stackName string) string {
+	template := env.NamingScheme
+	if env.NamingScheme == "" {
+		template = "{{env_name:32}}-{{stack_name:32}}"
+	}
+
+	return preprocessor.ParseTemplateTokens(template, map[string]string{
+		"env_name":   envName,
+		"stack_name": stackName,
+	})
 }
 
 func (s EnvService) waitForStacksComplete(enclave *model.Enclave, envName string, stackList []string) error {
