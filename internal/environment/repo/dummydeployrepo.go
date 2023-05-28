@@ -166,8 +166,9 @@ func (r *DummyDeployRepo) ListStacks(enclave model.Enclave, envName string) ([]s
 	fmt.Printf("ListStacks: %v in enclave %v\n", envName, enclave.Name)
 
 	stacks := []string{
-		"swiz-boot",
-		"swiz-sleep",
+		"swizboot",
+		"swizsleep",
+		"swizrogue",
 	}
 
 	return stacks, nil
@@ -196,20 +197,33 @@ func (r *DummyDeployRepo) GetEnvironment(enclave model.Enclave, envName string) 
 	return env, nil
 }
 
-func (r *DummyDeployRepo) IsEnvironmentReady(enclave model.Enclave, envName string, stacks []string) (bool, error) {
+func (r *DummyDeployRepo) IsEnvironmentInState(enclave model.Enclave, envName string, stacks []string, states []model.State) (bool, error) {
 	// check to see if r.deployTime[name] is past the current time
 	// if it is, then set the state to complete
 	// if it isn't, then set the state to in progress
+
+	createState := false
+	for _, state := range states {
+		if state == model.StateComplete {
+			createState = true
+			break
+		}
+	}
+
 	stacksComplete := 0
 
-	for _, stack := range stacks {
-		stackInfo := r.stacks[stack]
-		if nil == stackInfo {
-			return false, apperr.NewNotFoundError("stack", stack)
+	if createState {
+		for _, stack := range stacks {
+			stackInfo := r.stacks[stack]
+			if nil == stackInfo {
+				return false, apperr.NewNotFoundError("stack", stack)
+			}
+			if stackInfo.DeployTime.Before(time.Now()) {
+				stacksComplete++
+			}
 		}
-		if stackInfo.DeployTime.Before(time.Now()) {
-			stacksComplete++
-		}
+	} else {
+		stacksComplete = len(stacks)
 	}
 
 	return stacksComplete == len(stacks), nil

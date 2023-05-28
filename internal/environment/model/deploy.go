@@ -10,6 +10,7 @@ const (
 	StateRollingBack
 	StateFailed
 	StateComplete
+	StateDeleted
 	StateDryRun
 )
 

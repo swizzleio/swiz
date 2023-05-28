@@ -59,6 +59,6 @@ func (r *CloudFormationRepo) GetEnvironment(enclave model.Enclave, envName strin
 	return nil, nil
 }
 
-func (r *CloudFormationRepo) IsEnvironmentReady(enclave model.Enclave, envName string, stacks []string) (bool, error) {
+func (r *CloudFormationRepo) IsEnvironmentInState(enclave model.Enclave, envName string, stacks []string, states []model.State) (bool, error) {
 	return true, nil
 }

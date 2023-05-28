@@ -36,11 +36,6 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	}, nil
 }
 
-func (s EnvService) getStackName(envName string, stackName string) string {
-
-	return fmt.Sprintf("%s-%s", envName, stackName)
-}
-
 func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
 	noUpdate bool) ([]*model.StackInfo, error) {
 
@@ -63,12 +58,12 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 	ps := preprocessor.NewParamStore(enclave.Parameters)
 
 	// Determine dependency order
-	stackDeps := s.buildDependencyOrder(env.Stacks)
+	stackDeps := s.buildDependencyOrder(env.Stacks, false)
 
 	// Create stacks
 	stackInfoList := []*model.StackInfo{}
 	for _, stackDep := range stackDeps {
-		stackList := make([]string, len(stackDep))
+		waitList := make([]string, len(stackDep))
 		for i, stack := range stackDep {
 			params := ps.GetParams(stack.Parameters)
 
@@ -79,17 +74,17 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 			}
 
 			stackInfoList = append(stackInfoList, stackInfo)
-			stackList[i] = stackInfo.Name
+			waitList[i] = stackInfo.Name
 		}
 
 		// Wait for completion
-		err = s.waitForStacksComplete(enclave, envName, stackList)
+		err = s.waitForStacksComplete(enclave, envName, waitList, model.StateComplete)
 		if err != nil {
 			return nil, err
 		}
 
 		// Get outputs
-		for _, stackName := range stackList {
+		for _, stackName := range waitList {
 			out, oerr := s.iacDeploy.GetStackOutputs(*enclave, stackName)
 			if oerr != nil {
 				return nil, oerr
@@ -104,7 +99,82 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 
 func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
 	noOrphanDelete bool, fastDelete bool) ([]model.StackInfo, error) {
-	// TODO: Implement
+
+	// Get environment definition
+	env, err := s.envRepo.GetEnvironmentByDef(envDef)
+	if err != nil {
+		return nil, err
+	}
+
+	enclaveRepo := repo.NewEnclaveRepo(*env)
+	enclave, err := enclaveRepo.GetEnclave(enclaveName)
+	if err != nil {
+		return nil, err
+	}
+	if enclave == nil {
+		return nil, apperr.NewNotFoundError("enclave", enclaveName)
+	}
+
+	// Determine dependency order
+	stackDeps := s.buildDependencyOrder(env.Stacks, true)
+
+	// Delete stacks
+	stackInfoList := []*model.StackInfo{}
+	stackDeleted := map[string]bool{}
+	for _, stackDep := range stackDeps {
+		waitList := make([]string, len(stackDep))
+		for i, stack := range stackDep {
+			// Generate stack name
+			stack.Name = s.generateStackName(env, envName, stack.Name)
+			stackInfo, deleteErr := s.iacDeploy.DeleteStack(*enclave, stack.Name, dryRun)
+			if deleteErr != nil {
+				return nil, deleteErr
+			}
+
+			stackInfoList = append(stackInfoList, stackInfo)
+			waitList[i] = stackInfo.Name
+			stackDeleted[stack.Name] = true
+		}
+		if !fastDelete {
+			// Wait for completion
+			err = s.waitForStacksComplete(enclave, envName, waitList, model.StateDeleted)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// Find orphaned stacks
+	if !noOrphanDelete {
+		// Get list of stacks
+		stackList, listErr := s.iacDeploy.ListStacks(*enclave, envName)
+		if listErr != nil {
+			return nil, listErr
+		}
+
+		waitList := []string{}
+		for _, stack := range stackList {
+			stackName := s.generateStackName(env, envName, stack)
+			if _, ok := stackDeleted[stackName]; !ok {
+				// Delete stack
+				stackInfo, deleteErr := s.iacDeploy.DeleteStack(*enclave, stackName, dryRun)
+				if deleteErr != nil {
+					return nil, deleteErr
+				}
+
+				stackInfoList = append(stackInfoList, stackInfo)
+				waitList = append(waitList, stackInfo.Name)
+			}
+		}
+
+		if !fastDelete {
+			// Wait for completion
+			err = s.waitForStacksComplete(enclave, envName, waitList, model.StateDeleted)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	return []model.StackInfo{}, nil
 }
@@ -177,11 +247,11 @@ func (s EnvService) generateMetadata(envName string, envDef string, enclaveName 
 	return retVal
 }
 
-func (s EnvService) waitForStacksComplete(enclave *model.Enclave, envName string, stackList []string) error {
+func (s EnvService) waitForStacksComplete(enclave *model.Enclave, envName string, stackList []string, state model.State) error {
 	stopPoll := false
 	for !stopPoll {
 		var envErr error
-		stopPoll, envErr = s.iacDeploy.IsEnvironmentReady(*enclave, envName, stackList)
+		stopPoll, envErr = s.iacDeploy.IsEnvironmentInState(*enclave, envName, stackList, []model.State{state})
 		if envErr != nil {
 			return envErr
 		}
@@ -193,7 +263,7 @@ func (s EnvService) waitForStacksComplete(enclave *model.Enclave, envName string
 	return nil
 }
 
-func (s EnvService) buildDependencyOrder(stacks map[string]*model.StackConfig) [][]*model.StackConfig {
+func (s EnvService) buildDependencyOrder(stacks map[string]*model.StackConfig, reverseOrder bool) [][]*model.StackConfig {
 	// Figure out how many stack order buckets
 	maxSize := 0
 	for _, stack := range stacks {
@@ -215,6 +285,13 @@ func (s EnvService) buildDependencyOrder(stacks map[string]*model.StackConfig) [
 		}
 
 		retVal[stack.Order] = append(retVal[stack.Order], stack)
+	}
+
+	if reverseOrder {
+		// Reverse order
+		for i, j := 0, len(retVal)-1; i < j; i, j = i+1, j-1 {
+			retVal[i], retVal[j] = retVal[j], retVal[i]
+		}
 	}
 
 	return retVal
