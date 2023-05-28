@@ -36,9 +36,10 @@ func (r *DummyDeployRepo) outputParams(params map[string]string) string {
 }
 
 func (r *DummyDeployRepo) CreateStack(enclave model.Enclave, name string, template string,
-	params map[string]string, dryRun bool) (*model.StackInfo, error) {
+	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
 	fmt.Printf("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, enclave.Name)
-	fmt.Println(r.outputParams(params))
+	fmt.Printf(r.outputParams(params))
+	fmt.Printf("Metadata:\n%v\n", r.outputParams(metadata))
 
 	/*
 		cfYaml, err := fileutil.YamlFromLocation[map[string]interface{}](template)
@@ -111,9 +112,10 @@ func (r *DummyDeployRepo) DeleteStack(enclave model.Enclave, name string, dryRun
 }
 
 func (r *DummyDeployRepo) UpdateStack(enclave model.Enclave, name string, template string,
-	params map[string]string, dryRun bool) (*model.StackInfo, error) {
+	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
 	fmt.Printf("UpdateStack: %v with template %v in enclave %v. Params: \n", name, template, enclave.Name)
-	fmt.Println(r.outputParams(params))
+	fmt.Printf(r.outputParams(params))
+	fmt.Printf("Metadata:\n%v\n", r.outputParams(metadata))
 
 	return &model.StackInfo{
 		Name: name,

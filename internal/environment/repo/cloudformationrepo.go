@@ -13,7 +13,7 @@ func NewCloudFormationRepo(config appconfig.AppConfig) (IacDeployer, error) {
 }
 
 func (r *CloudFormationRepo) CreateStack(enclave model.Enclave, name string, template string,
-	params map[string]string, dryRun bool) (*model.StackInfo, error) {
+	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
 	// For dry run: aws cloudformation get-template-summary --template-body file://bootstrap.yaml --profile myprofile
 	return &model.StackInfo{}, nil
 }
@@ -23,7 +23,7 @@ func (r *CloudFormationRepo) DeleteStack(enclave model.Enclave, name string, dry
 }
 
 func (r *CloudFormationRepo) UpdateStack(enclave model.Enclave, name string, template string,
-	params map[string]string, dryRun bool) (*model.StackInfo, error) {
+	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
 
 	// TODO: Mimic the cloudformation deploy command:
 	// https://stackoverflow.com/questions/49945531/aws-cloudformation-create-stack-vs-deploy
