@@ -10,19 +10,24 @@ import (
 	"github.com/swizzleio/swiz/internal/environment/model"
 )
 
-type DummyDeloyRepo struct {
-	envs       map[string]*model.EnvironmentInfo
-	deployTime map[string]time.Time
+type DummyStack struct {
+	Name       string
+	DeployTime time.Time
 }
 
-func NewDummyDeloyRepo(config appconfig.AppConfig) IacDeployer {
-	return &DummyDeloyRepo{
-		envs:       map[string]*model.EnvironmentInfo{},
-		deployTime: map[string]time.Time{},
+type DummyDeployRepo struct {
+	envs   map[string]*model.EnvironmentInfo
+	stacks map[string]*DummyStack
+}
+
+func NewDummyDeployRepo(config appconfig.AppConfig) IacDeployer {
+	return &DummyDeployRepo{
+		envs:   map[string]*model.EnvironmentInfo{},
+		stacks: map[string]*DummyStack{},
 	}
 }
 
-func (r *DummyDeloyRepo) outputParams(params map[string]string) string {
+func (r *DummyDeployRepo) outputParams(params map[string]string) string {
 	output := ""
 	for k, v := range params {
 		output += fmt.Sprintf("  %s : %s\n", k, v)
@@ -30,8 +35,8 @@ func (r *DummyDeloyRepo) outputParams(params map[string]string) string {
 	return output
 }
 
-func (r *DummyDeloyRepo) CreateStack(enclave model.Enclave, name string, template string,
-	params map[string]string) error {
+func (r *DummyDeployRepo) CreateStack(enclave model.Enclave, name string, template string,
+	params map[string]string, dryRun bool) (*model.StackInfo, error) {
 	fmt.Printf("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, enclave.Name)
 	fmt.Println(r.outputParams(params))
 
@@ -48,7 +53,10 @@ func (r *DummyDeloyRepo) CreateStack(enclave model.Enclave, name string, templat
 	if err != nil {
 		timeLen = 2
 	}
-	r.deployTime[name] = time.Now().Add(time.Duration(timeLen+4) * time.Second)
+	r.stacks[name] = &DummyStack{
+		Name:       name,
+		DeployTime: time.Now().Add(time.Duration(timeLen+4) * time.Second),
+	}
 
 	// Print the environment info
 	r.envs[name] = &model.EnvironmentInfo{
@@ -75,25 +83,56 @@ func (r *DummyDeloyRepo) CreateStack(enclave model.Enclave, name string, templat
 		},
 	}
 
-	return nil
+	return &model.StackInfo{
+		Name: name,
+		DeployStatus: model.DeployStatus{
+			Name:    name,
+			State:   model.StateComplete,
+			Reason:  "It's done",
+			Details: "An awesome stack has been created",
+		},
+		NextAction: model.NextActionCreate,
+	}, nil
 }
 
-func (r *DummyDeloyRepo) DeleteStack(enclave model.Enclave, name string) error {
+func (r *DummyDeployRepo) DeleteStack(enclave model.Enclave, name string, dryRun bool) (*model.StackInfo, error) {
 	fmt.Printf("DeleteStack: %v in enclave %v\n", name, enclave.Name)
 
-	return nil
+	return &model.StackInfo{
+		Name: name,
+		DeployStatus: model.DeployStatus{
+			Name:    name,
+			State:   model.StateComplete,
+			Reason:  "It's done",
+			Details: "An awesome stack has been created",
+		},
+		NextAction: model.NextActionDelete,
+	}, nil
 }
 
-func (r *DummyDeloyRepo) UpdateStack(enclave model.Enclave, name string, template string,
-	params map[string]string) error {
+func (r *DummyDeployRepo) UpdateStack(enclave model.Enclave, name string, template string,
+	params map[string]string, dryRun bool) (*model.StackInfo, error) {
 	fmt.Printf("UpdateStack: %v with template %v in enclave %v. Params: \n", name, template, enclave.Name)
 	fmt.Println(r.outputParams(params))
 
-	return nil
+	return &model.StackInfo{
+		Name: name,
+		DeployStatus: model.DeployStatus{
+			Name:    name,
+			State:   model.StateComplete,
+			Reason:  "It's done",
+			Details: "An awesome stack has been created",
+		},
+		NextAction: model.NextActionUpdate,
+	}, nil
 }
 
-func (r *DummyDeloyRepo) GetStackInfo(enclave model.Enclave, name string) (*model.StackInfo, error) {
+func (r *DummyDeployRepo) GetStackInfo(enclave model.Enclave, name string) (*model.StackInfo, error) {
 	fmt.Printf("GetStackInfo: %v in enclave %v\n", name, enclave.Name)
+
+	if r.stacks[name] == nil {
+		return nil, apperr.NewNotFoundError("stack", name)
+	}
 
 	stackInfo := &model.StackInfo{
 		Name: name,
@@ -108,8 +147,12 @@ func (r *DummyDeloyRepo) GetStackInfo(enclave model.Enclave, name string) (*mode
 	return stackInfo, nil
 }
 
-func (r *DummyDeloyRepo) GetStackOutputs(enclave model.Enclave, name string) (map[string]string, error) {
+func (r *DummyDeployRepo) GetStackOutputs(enclave model.Enclave, name string) (map[string]string, error) {
 	fmt.Printf("GetStackOutputs: %v in enclave %v\n", name, enclave.Name)
+
+	if r.stacks[name] == nil {
+		return nil, apperr.NewNotFoundError("stack", name)
+	}
 
 	outputs := map[string]string{
 		"SleepTestFunctionArn": "arn:aws:lambda:us-east-1:123456789:function:SleepTestFunction",
@@ -117,7 +160,7 @@ func (r *DummyDeloyRepo) GetStackOutputs(enclave model.Enclave, name string) (ma
 	return outputs, nil
 }
 
-func (r *DummyDeloyRepo) ListStacks(enclave model.Enclave, envName string) ([]string, error) {
+func (r *DummyDeployRepo) ListStacks(enclave model.Enclave, envName string) ([]string, error) {
 	fmt.Printf("ListStacks: %v in enclave %v\n", envName, enclave.Name)
 
 	stacks := []string{
@@ -128,7 +171,7 @@ func (r *DummyDeloyRepo) ListStacks(enclave model.Enclave, envName string) ([]st
 	return stacks, nil
 }
 
-func (r *DummyDeloyRepo) ListEnvironments(enclave model.Enclave) ([]string, error) {
+func (r *DummyDeployRepo) ListEnvironments(enclave model.Enclave) ([]string, error) {
 	fmt.Printf("ListEnvironments in enclave %v\n", enclave.Name)
 
 	envList := []string{}
@@ -139,7 +182,7 @@ func (r *DummyDeloyRepo) ListEnvironments(enclave model.Enclave) ([]string, erro
 	return envList, nil
 }
 
-func (r *DummyDeloyRepo) GetEnvironment(enclave model.Enclave, envName string) (*model.EnvironmentInfo, error) {
+func (r *DummyDeployRepo) GetEnvironment(enclave model.Enclave, envName string) (*model.EnvironmentInfo, error) {
 	fmt.Printf("GetEnvironment: %v in enclave %v\n", envName, enclave.Name)
 
 	env := r.envs[envName]
@@ -151,14 +194,18 @@ func (r *DummyDeloyRepo) GetEnvironment(enclave model.Enclave, envName string) (
 	return env, nil
 }
 
-func (r *DummyDeloyRepo) IsEnvironmentReady(enclave model.Enclave, envName string, stacks []string) (bool, error) {
+func (r *DummyDeployRepo) IsEnvironmentReady(enclave model.Enclave, envName string, stacks []string) (bool, error) {
 	// check to see if r.deployTime[name] is past the current time
 	// if it is, then set the state to complete
 	// if it isn't, then set the state to in progress
 	stacksComplete := 0
 
 	for _, stack := range stacks {
-		if r.deployTime[stack].Before(time.Now()) {
+		stackInfo := r.stacks[stack]
+		if nil == stackInfo {
+			return false, apperr.NewNotFoundError("stack", stack)
+		}
+		if stackInfo.DeployTime.Before(time.Now()) {
 			stacksComplete++
 		}
 	}

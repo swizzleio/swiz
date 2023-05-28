@@ -30,62 +30,52 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	}
 	return &EnvService{
 		envRepo:   envRepo,
-		iacDeploy: repo.NewDummyDeloyRepo(*config),
+		iacDeploy: repo.NewDummyDeployRepo(*config),
 	}, nil
 }
 
 func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
-	noUpdate bool) error {
-
-	// TODO: Mimic the cloudformation deploy command:
-	// https://stackoverflow.com/questions/49945531/aws-cloudformation-create-stack-vs-deploy
-	// https://www.quora.com/How-does-AWS-CloudFormation-determine-whether-to-create-new-resources-or-updating-existing-ones-when-doing-a-deploy
+	noUpdate bool) ([]*model.StackInfo, error) {
 
 	// Get environment definition
 	env, err := s.envRepo.GetEnvironmentByDef(envDef)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	enclaveRepo := repo.NewEnclaveRepo(*env)
 	enclave, err := enclaveRepo.GetEnclave(enclaveName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if enclave == nil {
-		return apperr.NewNotFoundError("enclave", enclaveName)
+		return nil, apperr.NewNotFoundError("enclave", enclaveName)
 	}
 
 	// Init param store
 	ps := NewParamStore(enclave.Parameters)
 
-	// Check if environment already exists
-	envInfo, err := s.iacDeploy.GetEnvironment(*enclave, envName)
-	if err != nil && !errors.Is(err, apperr.GenNotFoundError) {
-		return err
-	}
-	if envInfo != nil {
-		return fmt.Errorf("environment %s already exists", envName)
-		// TODO: Handle update if the env already exists
-	}
-
 	// Determine dependency order
 	stackDeps := s.buildDependencyOrder(env.Stacks)
 
 	// Create stacks
+	stackInfoList := []*model.StackInfo{}
 	for _, stackDep := range stackDeps {
 		stackList := make([]string, len(stackDep))
 		for i, stack := range stackDep {
 			params := ps.getParams(stack.Parameters)
 
-			createErr := s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params)
-			if createErr != nil {
-				return err
+			// Upsert stack
+			stackInfo, createUpErr := s.upsertStack(enclave, stack, params, noUpdate, dryRun)
+			if createUpErr != nil {
+				return nil, createUpErr
 			}
+
+			stackInfoList = append(stackInfoList, stackInfo)
 
 			out, oerr := s.iacDeploy.GetStackOutputs(*enclave, stack.Name)
 			if oerr != nil {
-				return oerr
+				return nil, oerr
 			}
 
 			ps.setParams(stack.Name, out)
@@ -93,28 +83,20 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 		}
 
 		// Wait for completion
-		stopPoll := false
-		for !stopPoll {
-			var envErr error
-			stopPoll, envErr = s.iacDeploy.IsEnvironmentReady(*enclave, envName, stackList)
-			if envErr != nil {
-				return envErr
-			}
-
-			if !stopPoll {
-				time.Sleep(POLL_INTERVAL_SEC * time.Second)
-			}
+		err = s.waitForStacksComplete(enclave, envName, stackList)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return nil
+	return stackInfoList, nil
 }
 
 func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
-	noOrphanDelete bool, fastDelete bool) error {
+	noOrphanDelete bool, fastDelete bool) ([]model.StackInfo, error) {
 	// TODO: Implement
 
-	return nil
+	return []model.StackInfo{}, nil
 }
 
 func (s EnvService) ListEnvironments(enclaveName string) ([]string, error) {
@@ -129,6 +111,45 @@ func (s EnvService) GetEnvironmentInfo(enclaveName string, envName string) (*mod
 	return &model.EnvironmentInfo{
 		StackDeployStatus: []model.DeployStatus{},
 	}, nil
+}
+
+func (s EnvService) upsertStack(enclave *model.Enclave, stack *model.StackConfig, params map[string]string, noUpdate bool, dryRun bool) (*model.StackInfo, error) {
+	var err error
+	var stackInfo *model.StackInfo
+	// Check to see if stack exists
+	_, getErr := s.iacDeploy.GetStackInfo(*enclave, stack.Name)
+	if getErr != nil {
+		if errors.Is(getErr, apperr.GenNotFoundError) {
+			// No new stack, create one
+			stackInfo, err = s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params, dryRun)
+		} else {
+			return nil, getErr
+		}
+	} else if !noUpdate {
+		// Update stack
+		stackInfo, err = s.iacDeploy.UpdateStack(*enclave, stack.Name, stack.TemplateFile, params, dryRun)
+	} else {
+		// Stacks exists and no update requested
+		return nil, apperr.NewExistsError("stack", stack.Name)
+	}
+
+	return stackInfo, err
+}
+
+func (s EnvService) waitForStacksComplete(enclave *model.Enclave, envName string, stackList []string) error {
+	stopPoll := false
+	for !stopPoll {
+		var envErr error
+		stopPoll, envErr = s.iacDeploy.IsEnvironmentReady(*enclave, envName, stackList)
+		if envErr != nil {
+			return envErr
+		}
+
+		if !stopPoll {
+			time.Sleep(POLL_INTERVAL_SEC * time.Second)
+		}
+	}
+	return nil
 }
 
 func (s EnvService) buildDependencyOrder(stacks map[string]*model.StackConfig) [][]*model.StackConfig {

@@ -13,13 +13,6 @@ const (
 	StateDryRun
 )
 
-type DeployStatus struct {
-	Name    string
-	State   State
-	Reason  string
-	Details string
-}
-
 func (e State) String() string {
 	switch e {
 	case StateUnknown:
@@ -41,4 +34,38 @@ func (e State) String() string {
 	default:
 		return "Unknown"
 	}
+}
+
+type NextAction int
+
+const (
+	NextActionUnknown NextAction = iota
+	NextActionCreate
+	NextActionUpdate
+	NextActionDelete
+	NextActionNone
+)
+
+func (e NextAction) String() string {
+	switch e {
+	case NextActionUnknown:
+		return "Unknown"
+	case NextActionCreate:
+		return "Create"
+	case NextActionUpdate:
+		return "Update"
+	case NextActionDelete:
+		return "Delete"
+	case NextActionNone:
+		return "None"
+	default:
+		return "Unknown"
+	}
+}
+
+type DeployStatus struct {
+	Name    string
+	State   State
+	Reason  string
+	Details string
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/swizzleio/swiz/internal/environment"
 
 	"github.com/urfave/cli/v2"
@@ -54,5 +55,14 @@ func envCreateCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	return svc.DeployEnvironment(enclave, envDef, envName, dryRun, noUpdate)
+	stackInfo, err := svc.DeployEnvironment(enclave, envDef, envName, dryRun, noUpdate)
+	if err != nil {
+		return err
+	}
+
+	for _, stack := range stackInfo {
+		fmt.Printf("Stack: %v [%v] - %v\n", stack.Name, stack.DeployStatus.State, stack.NextAction)
+	}
+
+	return nil
 }

@@ -10,5 +10,6 @@ type StackConfig struct {
 
 type StackInfo struct {
 	Name         string
+	NextAction   NextAction
 	DeployStatus DeployStatus
 }
