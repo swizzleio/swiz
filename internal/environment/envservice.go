@@ -30,6 +30,7 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &EnvService{
 		envRepo:   envRepo,
 		iacDeploy: repo.NewDummyDeployRepo(*config),
@@ -38,20 +39,10 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 
 func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
 	noUpdate bool) ([]*model.StackInfo, error) {
-
 	// Get environment definition
-	env, err := s.envRepo.GetEnvironmentByDef(envDef)
+	env, enclave, err := s.getEnvEnclave(enclaveName, envDef)
 	if err != nil {
 		return nil, err
-	}
-
-	enclaveRepo := repo.NewEnclaveRepo(*env)
-	enclave, err := enclaveRepo.GetEnclave(enclaveName)
-	if err != nil {
-		return nil, err
-	}
-	if enclave == nil {
-		return nil, apperr.NewNotFoundError("enclave", enclaveName)
 	}
 
 	// Init param store
@@ -99,20 +90,10 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 
 func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
 	noOrphanDelete bool, fastDelete bool) ([]model.StackInfo, error) {
-
 	// Get environment definition
-	env, err := s.envRepo.GetEnvironmentByDef(envDef)
+	env, enclave, err := s.getEnvEnclave(enclaveName, envDef)
 	if err != nil {
 		return nil, err
-	}
-
-	enclaveRepo := repo.NewEnclaveRepo(*env)
-	enclave, err := enclaveRepo.GetEnclave(enclaveName)
-	if err != nil {
-		return nil, err
-	}
-	if enclave == nil {
-		return nil, apperr.NewNotFoundError("enclave", enclaveName)
 	}
 
 	// Determine dependency order
@@ -218,6 +199,25 @@ func (s EnvService) upsertStack(env *model.EnvironmentConfig, enclave *model.Enc
 	}
 
 	return stackInfo, err
+}
+
+func (s EnvService) getEnvEnclave(enclaveName string, envDef string) (*model.EnvironmentConfig, *model.Enclave, error) {
+	// Get environment definition
+	env, err := s.envRepo.GetEnvironmentByDef(envDef)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Get enclave
+	enclaveRepo := repo.NewEnclaveRepo(*env)
+	enclave, err := enclaveRepo.GetEnclave(enclaveName)
+	if err != nil {
+		return nil, nil, err
+	}
+	if enclave == nil {
+		return nil, nil, apperr.NewNotFoundError("enclave", enclaveName)
+	}
+	return env, enclave, nil
 }
 
 func (s EnvService) generateStackName(env *model.EnvironmentConfig, envName string, stackName string) string {
