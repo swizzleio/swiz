@@ -1,7 +1,7 @@
 ---
 version: 1
+default_env: SleepySleep
 env_def:
   - name: SleepySleep
     env_def_file: file://env-def.yaml
-    default: true
 disabled_commands: [version]

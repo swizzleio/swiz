@@ -17,8 +17,9 @@ type EnvironmentRepo struct {
 
 func NewEnvironmentRepo(config appconfig.AppConfig) (*EnvironmentRepo, error) {
 	retVal := &EnvironmentRepo{
-		envCfg:  map[string]*model.EnvironmentConfig{},
-		baseDir: config.BaseDir,
+		envCfg:      map[string]*model.EnvironmentConfig{},
+		baseDir:     config.BaseDir,
+		defaultName: config.DefaultEnv,
 	}
 
 	errList := errtype.ErrList{}
@@ -32,9 +33,6 @@ func NewEnvironmentRepo(config appconfig.AppConfig) (*EnvironmentRepo, error) {
 		} else {
 			yamlData.EnvDefName = envDef.Name
 			retVal.envCfg[envDef.Name] = yamlData
-			if envDef.Default {
-				retVal.defaultName = envDef.Name
-			}
 		}
 	}
 

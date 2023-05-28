@@ -17,11 +17,11 @@ var ProviderIds = []string{"aws"}
 type EnvDef struct {
 	Name       string `yaml:"name"`
 	EnvDefFile string `yaml:"env_def_file"`
-	Default    bool   `yaml:"default"`
 }
 
 type AppConfig struct {
 	Version          int      `yaml:"version"`
+	DefaultEnv       string   `yaml:"default_env"`
 	EnvDefinition    []EnvDef `yaml:"env_def"`
 	DisabledCommands []string `yaml:"disabled_commands"`
 	BaseDir          string
@@ -70,11 +70,11 @@ func Generate(enclave model.Enclave, env EnvDef) error {
 	enclave.Name = configutil.SetOrDefault[string](enclave.Name, awswrap.DefaultAccountName)
 
 	env.Name = configutil.SetOrDefault[string](env.Name, "default")
-	env.Default = configutil.SetOrDefault[bool](env.Default, true)
 
 	// Save app config to yaml
 	cfg := AppConfig{
 		Version:          1,
+		DefaultEnv:       env.Name,
 		EnvDefinition:    []EnvDef{env},
 		DisabledCommands: []string{},
 	}
