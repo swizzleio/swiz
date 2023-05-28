@@ -7,6 +7,7 @@ import (
 	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
 	"github.com/swizzleio/swiz/internal/environment/repo"
+	"github.com/swizzleio/swiz/pkg/preprocessor"
 	"time"
 )
 
@@ -34,6 +35,11 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	}, nil
 }
 
+func (s EnvService) getStackName(envName string, stackName string) string {
+
+	return fmt.Sprintf("%s-%s", envName, stackName)
+}
+
 func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
 	noUpdate bool) ([]*model.StackInfo, error) {
 
@@ -53,7 +59,7 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 	}
 
 	// Init param store
-	ps := NewParamStore(enclave.Parameters)
+	ps := preprocessor.NewParamStore(enclave.Parameters)
 
 	// Determine dependency order
 	stackDeps := s.buildDependencyOrder(env.Stacks)
@@ -63,7 +69,7 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 	for _, stackDep := range stackDeps {
 		stackList := make([]string, len(stackDep))
 		for i, stack := range stackDep {
-			params := ps.getParams(stack.Parameters)
+			params := ps.GetParams(stack.Parameters)
 
 			// Upsert stack
 			stackInfo, createUpErr := s.upsertStack(enclave, stack, params, noUpdate, dryRun)
@@ -72,13 +78,6 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 			}
 
 			stackInfoList = append(stackInfoList, stackInfo)
-
-			out, oerr := s.iacDeploy.GetStackOutputs(*enclave, stack.Name)
-			if oerr != nil {
-				return nil, oerr
-			}
-
-			ps.setParams(stack.Name, out)
 			stackList[i] = stack.Name
 		}
 
@@ -86,6 +85,16 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 		err = s.waitForStacksComplete(enclave, envName, stackList)
 		if err != nil {
 			return nil, err
+		}
+
+		// Get outputs
+		for _, stackName := range stackList {
+			out, oerr := s.iacDeploy.GetStackOutputs(*enclave, stackName)
+			if oerr != nil {
+				return nil, oerr
+			}
+
+			ps.SetParams(stackName, out)
 		}
 	}
 
