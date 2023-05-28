@@ -160,18 +160,24 @@ func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName
 	return []model.StackInfo{}, nil
 }
 
-func (s EnvService) ListEnvironments(enclaveName string) ([]string, error) {
-	// TODO: Implement
+func (s EnvService) ListEnvironments(enclaveName string, envDef string) ([]string, error) {
+	// Get environment definition
+	_, enclave, err := s.getEnvEnclave(enclaveName, envDef)
+	if err != nil {
+		return nil, err
+	}
 
-	return []string{}, nil
+	return s.iacDeploy.ListEnvironments(*enclave)
 }
 
-func (s EnvService) GetEnvironmentInfo(enclaveName string, envName string) (*model.EnvironmentInfo, error) {
-	// TODO: Implement
+func (s EnvService) GetEnvironmentInfo(enclaveName string, envDef string, envName string) (*model.EnvironmentInfo, error) {
+	// Get environment definition
+	_, enclave, err := s.getEnvEnclave(enclaveName, envDef)
+	if err != nil {
+		return nil, err
+	}
 
-	return &model.EnvironmentInfo{
-		StackDeployStatus: []model.DeployStatus{},
-	}, nil
+	return s.iacDeploy.GetEnvironment(*enclave, envName)
 }
 
 func (s EnvService) upsertStack(env *model.EnvironmentConfig, enclave *model.Enclave, envName string, stack *model.StackConfig, params map[string]string, noUpdate bool, dryRun bool) (*model.StackInfo, error) {

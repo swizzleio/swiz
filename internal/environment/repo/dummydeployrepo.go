@@ -182,6 +182,11 @@ func (r *DummyDeployRepo) ListEnvironments(enclave model.Enclave) ([]string, err
 		envList = append(envList, k)
 	}
 
+	if len(envList) == 0 {
+		envList = append(envList, "SomeEnvironment")
+		envList = append(envList, "AnotherEnvironment")
+	}
+
 	return envList, nil
 }
 
@@ -189,6 +194,32 @@ func (r *DummyDeployRepo) GetEnvironment(enclave model.Enclave, envName string) 
 	fmt.Printf("GetEnvironment: %v in enclave %v\n", envName, enclave.Name)
 
 	env := r.envs[envName]
+
+	if envName == "AnotherEnvironment" {
+		env = &model.EnvironmentInfo{
+			EnvironmentName: envName,
+			DeployStatus: model.DeployStatus{
+				Name:    envName,
+				State:   model.StateComplete,
+				Reason:  "It's done",
+				Details: "An awesome environment has been created",
+			},
+			StackDeployStatus: []model.DeployStatus{
+				{
+					Name:    "swiz-boot",
+					State:   model.StateComplete,
+					Reason:  "It's done",
+					Details: "An awesome stack has been created",
+				},
+				{
+					Name:    "swiz-sleep",
+					State:   model.StateComplete,
+					Reason:  "It's done",
+					Details: "An awesome stack has been created",
+				},
+			},
+		}
+	}
 
 	if env == nil {
 		return nil, apperr.NewNotFoundError("environment", envName)

@@ -12,7 +12,7 @@ func init() {
 		Name:   "list",
 		Usage:  "List all environments",
 		Action: envListCmd,
-		Flags:  []cli.Flag{
+		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "enclave",
 				Aliases:     []string{"e"},
@@ -25,13 +25,14 @@ func init() {
 
 func envListCmd(ctx *cli.Context) error {
 	enclave := ctx.String("enclave")
+	envDef := ctx.String("env-def")
 
 	svc, err := environment.NewEnvService(appConfig)
 	if err != nil {
 		return err
 	}
 
-	envList, err := svc.ListEnvironments(enclave)
+	envList, err := svc.ListEnvironments(enclave, envDef)
 	if err != nil {
 		return err
 	}

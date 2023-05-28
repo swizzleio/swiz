@@ -31,6 +31,7 @@ func init() {
 
 func envInfoCmd(ctx *cli.Context) error {
 	enclave := ctx.String("enclave")
+	envDef := ctx.String("env-def")
 	envName := ctx.String("name")
 
 	svc, err := environment.NewEnvService(appConfig)
@@ -38,7 +39,7 @@ func envInfoCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	envInfo, err := svc.GetEnvironmentInfo(enclave, envName)
+	envInfo, err := svc.GetEnvironmentInfo(enclave, envDef, envName)
 	if err != nil {
 		return err
 	}
