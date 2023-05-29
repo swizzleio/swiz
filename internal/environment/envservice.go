@@ -45,6 +45,9 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 		return nil, err
 	}
 
+	// Determine no update behavior
+	noUpdate = s.flagOrConfig(noUpdate, enclave.EnvBehavior.NoUpdateDeploy)
+
 	// Init param store
 	ps := preprocessor.NewParamStore(enclave.Parameters)
 
@@ -95,11 +98,16 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 
 func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName string, dryRun bool,
 	noOrphanDelete bool, fastDelete bool) ([]model.StackInfo, error) {
+
 	// Get environment definition
 	env, enclave, err := s.getEnvEnclave(enclaveName, envDef)
 	if err != nil {
 		return nil, err
 	}
+
+	// Determine flag behavior
+	noOrphanDelete = s.flagOrConfig(noOrphanDelete, enclave.EnvBehavior.NoOrphanDelete)
+	fastDelete = s.flagOrConfig(noOrphanDelete, enclave.EnvBehavior.FastDelete)
 
 	// Determine dependency order
 	stackDeps := s.buildDependencyOrder(env.Stacks, true)
@@ -240,6 +248,14 @@ func (s EnvService) upsertStack(env *model.EnvironmentConfig, enclave *model.Enc
 	}
 
 	return stackInfo, err
+}
+
+func (s EnvService) flagOrConfig(flag bool, configVal *bool) bool {
+	if configVal != nil {
+		flag = *configVal
+	}
+
+	return flag
 }
 
 func (s EnvService) getEnvEnclave(enclaveName string, envDef string) (*model.EnvironmentConfig, *model.Enclave, error) {

@@ -4,6 +4,8 @@ naming_scheme: "{{env_name:32}}-{{stack_name:32}}"
 enclave_def:
   - name: dev
     default_provider: AwsDev
+    env_behavior:
+      no_orphan_delete: true
     providers:
       - name: AwsDev # Currently only a single provider is supported
         provider_id: AWS

@@ -1,9 +1,9 @@
 package model
 
 type EnvBehavior struct {
-	NoUpdateDeploy bool `yaml:"no_update_deploy"`
-	NoOrphanDelete bool `yaml:"no_orphan_delete"`
-	FastDelete     bool `yaml:"fast_delete"`
+	NoUpdateDeploy *bool `yaml:"no_update_deploy"`
+	NoOrphanDelete *bool `yaml:"no_orphan_delete"`
+	FastDelete     *bool `yaml:"fast_delete"`
 }
 
 type EncProvider struct {
