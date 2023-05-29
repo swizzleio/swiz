@@ -21,3 +21,16 @@ type Enclave struct {
 	DomainName      string            `yaml:"domain_name"`
 	Parameters      map[string]string `yaml:"params"`
 }
+
+func (e Enclave) GetProvider(providerName string) *EncProvider {
+	if providerName == "" {
+		providerName = e.DefaultProvider
+	}
+
+	for _, p := range e.Providers {
+		if p.Name == providerName {
+			return &p
+		}
+	}
+	return nil
+}

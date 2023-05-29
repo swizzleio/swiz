@@ -13,8 +13,8 @@ import (
 )
 
 type EnvService struct {
-	envRepo   *repo.EnvironmentRepo
-	iacDeploy repo.IacDeployer
+	envRepo    *repo.EnvironmentRepo
+	iacFactory *repo.IacRepoFactory
 }
 
 const (
@@ -32,8 +32,8 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	}
 
 	return &EnvService{
-		envRepo:   envRepo,
-		iacDeploy: repo.NewDummyDeployRepo(*config),
+		envRepo:    envRepo,
+		iacFactory: repo.NewIacRepoFactory(*config),
 	}, nil
 }
 
@@ -76,7 +76,12 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 
 		// Get outputs
 		for _, stackName := range waitList {
-			out, oerr := s.iacDeploy.GetStackOutputs(*enclave, stackName)
+			iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "")
+			if iacErr != nil {
+				return nil, iacErr
+			}
+
+			out, oerr := iacDeploy.GetStackOutputs(*enclave, stackName)
 			if oerr != nil {
 				return nil, oerr
 			}
@@ -105,9 +110,14 @@ func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName
 	for _, stackDep := range stackDeps {
 		waitList := make([]string, len(stackDep))
 		for i, stack := range stackDep {
+			iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "")
+			if iacErr != nil {
+				return nil, iacErr
+			}
+
 			// Generate stack name
 			stack.Name = s.generateStackName(env, envName, stack.Name)
-			stackInfo, deleteErr := s.iacDeploy.DeleteStack(*enclave, stack.Name, dryRun)
+			stackInfo, deleteErr := iacDeploy.DeleteStack(*enclave, stack.Name, dryRun)
 			if deleteErr != nil {
 				return nil, deleteErr
 			}
@@ -128,7 +138,12 @@ func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName
 	// Find orphaned stacks
 	if !noOrphanDelete {
 		// Get list of stacks
-		stackList, listErr := s.iacDeploy.ListStacks(*enclave, envName)
+		iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "")
+		if iacErr != nil {
+			return nil, iacErr
+		}
+
+		stackList, listErr := iacDeploy.ListStacks(*enclave, envName)
 		if listErr != nil {
 			return nil, listErr
 		}
@@ -137,8 +152,13 @@ func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName
 		for _, stack := range stackList {
 			stackName := s.generateStackName(env, envName, stack)
 			if _, ok := stackDeleted[stackName]; !ok {
+				iacDeploy, iacErr = s.iacFactory.GetDeployer(*enclave, "")
+				if iacErr != nil {
+					return nil, iacErr
+				}
+
 				// Delete stack
-				stackInfo, deleteErr := s.iacDeploy.DeleteStack(*enclave, stackName, dryRun)
+				stackInfo, deleteErr := iacDeploy.DeleteStack(*enclave, stackName, dryRun)
 				if deleteErr != nil {
 					return nil, deleteErr
 				}
@@ -167,7 +187,12 @@ func (s EnvService) ListEnvironments(enclaveName string, envDef string) ([]strin
 		return nil, err
 	}
 
-	return s.iacDeploy.ListEnvironments(*enclave)
+	iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "")
+	if iacErr != nil {
+		return nil, iacErr
+	}
+
+	return iacDeploy.ListEnvironments(*enclave)
 }
 
 func (s EnvService) GetEnvironmentInfo(enclaveName string, envDef string, envName string) (*model.EnvironmentInfo, error) {
@@ -177,28 +202,38 @@ func (s EnvService) GetEnvironmentInfo(enclaveName string, envDef string, envNam
 		return nil, err
 	}
 
-	return s.iacDeploy.GetEnvironment(*enclave, envName)
+	iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "")
+	if iacErr != nil {
+		return nil, iacErr
+	}
+
+	return iacDeploy.GetEnvironment(*enclave, envName)
 }
 
 func (s EnvService) upsertStack(env *model.EnvironmentConfig, enclave *model.Enclave, envName string, stack *model.StackConfig, params map[string]string, noUpdate bool, dryRun bool) (*model.StackInfo, error) {
 	var err error
 	var stackInfo *model.StackInfo
 
+	iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "")
+	if iacErr != nil {
+		return nil, iacErr
+	}
+
 	// Generate stack name
 	stack.Name = s.generateStackName(env, envName, stack.Name)
 
 	// Check to see if stack exists
-	_, getErr := s.iacDeploy.GetStackInfo(*enclave, stack.Name)
+	_, getErr := iacDeploy.GetStackInfo(*enclave, stack.Name)
 	if getErr != nil {
 		if errors.Is(getErr, apperr.GenNotFoundError) {
 			// No new stack, create one
-			stackInfo, err = s.iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params, s.generateMetadata(envName, env.EnvDefName, enclave.Name, true), dryRun)
+			stackInfo, err = iacDeploy.CreateStack(*enclave, stack.Name, stack.TemplateFile, params, s.generateMetadata(envName, env.EnvDefName, enclave.Name, true), dryRun)
 		} else {
 			return nil, getErr
 		}
 	} else if !noUpdate {
 		// Update stack
-		stackInfo, err = s.iacDeploy.UpdateStack(*enclave, stack.Name, stack.TemplateFile, params, s.generateMetadata(envName, env.EnvDefName, enclave.Name, false), dryRun)
+		stackInfo, err = iacDeploy.UpdateStack(*enclave, stack.Name, stack.TemplateFile, params, s.generateMetadata(envName, env.EnvDefName, enclave.Name, false), dryRun)
 	} else {
 		// Stacks exists and no update requested
 		return nil, apperr.NewExistsError("stack", stack.Name)
@@ -254,10 +289,15 @@ func (s EnvService) generateMetadata(envName string, envDef string, enclaveName 
 }
 
 func (s EnvService) waitForStacksComplete(enclave *model.Enclave, envName string, stackList []string, state model.State) error {
+	iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "") // This will need refactoring when we support multiple IACs
+	if iacErr != nil {
+		return iacErr
+	}
+
 	stopPoll := false
 	for !stopPoll {
 		var envErr error
-		stopPoll, envErr = s.iacDeploy.IsEnvironmentInState(*enclave, envName, stackList, []model.State{state})
+		stopPoll, envErr = iacDeploy.IsEnvironmentInState(*enclave, envName, stackList, []model.State{state})
 		if envErr != nil {
 			return envErr
 		}
