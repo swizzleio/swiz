@@ -7,6 +7,7 @@ import (
 	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
 	"github.com/swizzleio/swiz/internal/environment/repo"
+	"github.com/swizzleio/swiz/pkg/configutil"
 	"github.com/swizzleio/swiz/pkg/preprocessor"
 	"os"
 	"time"
@@ -46,7 +47,7 @@ func (s EnvService) DeployEnvironment(enclaveName string, envDef string, envName
 	}
 
 	// Determine no update behavior
-	noUpdate = s.flagOrConfig(noUpdate, enclave.EnvBehavior.NoUpdateDeploy)
+	noUpdate = configutil.FlagOrConfig(noUpdate, enclave.EnvBehavior.NoUpdateDeploy)
 
 	// Init param store
 	ps := preprocessor.NewParamStore(enclave.Parameters)
@@ -106,8 +107,8 @@ func (s EnvService) DeleteEnvironment(enclaveName string, envDef string, envName
 	}
 
 	// Determine flag behavior
-	noOrphanDelete = s.flagOrConfig(noOrphanDelete, enclave.EnvBehavior.NoOrphanDelete)
-	fastDelete = s.flagOrConfig(noOrphanDelete, enclave.EnvBehavior.FastDelete)
+	noOrphanDelete = configutil.FlagOrConfig(noOrphanDelete, enclave.EnvBehavior.NoOrphanDelete)
+	fastDelete = configutil.FlagOrConfig(noOrphanDelete, enclave.EnvBehavior.FastDelete)
 
 	// Determine dependency order
 	stackDeps := s.buildDependencyOrder(env.Stacks, true)
@@ -248,14 +249,6 @@ func (s EnvService) upsertStack(env *model.EnvironmentConfig, enclave *model.Enc
 	}
 
 	return stackInfo, err
-}
-
-func (s EnvService) flagOrConfig(flag bool, configVal *bool) bool {
-	if configVal != nil {
-		flag = *configVal
-	}
-
-	return flag
 }
 
 func (s EnvService) getEnvEnclave(enclaveName string, envDef string) (*model.EnvironmentConfig, *model.Enclave, error) {

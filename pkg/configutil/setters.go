@@ -12,3 +12,11 @@ func SetOrDefault[T comparable](val T, def T) T {
 	}
 	return val
 }
+
+func FlagOrConfig[T any](flag T, configVal *T) T {
+	if configVal != nil {
+		flag = *configVal
+	}
+
+	return flag
+}
