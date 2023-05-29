@@ -2,11 +2,11 @@ package awswrap
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
-	"github.com/pkg/errors"
 )
 
 type CfWrap struct {
@@ -24,7 +24,7 @@ func (c *CfWrap) GetOutput(stackName string, resourceName string) (string, error
 		StackName: &stackName})
 
 	if err != nil {
-		return "", errors.Wrap(err, "Unable to find resource")
+		return "", fmt.Errorf("unable to find resource: %w", err)
 	}
 
 	if len(result.Stacks) > 0 {
@@ -35,7 +35,7 @@ func (c *CfWrap) GetOutput(stackName string, resourceName string) (string, error
 			}
 		}
 	} else {
-		return "", errors.New("unable to find stack")
+		return "", fmt.Errorf("unable to find stack")
 	}
 
 	return "", nil
@@ -46,7 +46,7 @@ func (c *CfWrap) GetOutputs(stackName string) (map[string]string, error) {
 		StackName: &stackName})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to find resource")
+		return nil, fmt.Errorf("unable to find resource: %w", err)
 	}
 
 	outputs := make(map[string]string)
@@ -56,7 +56,7 @@ func (c *CfWrap) GetOutputs(stackName string) (map[string]string, error) {
 			outputs[*item.OutputKey] = *item.OutputValue
 		}
 	} else {
-		return nil, errors.New("unable to find stack")
+		return nil, fmt.Errorf("unable to find stack")
 	}
 
 	return outputs, nil
@@ -66,7 +66,7 @@ func (c *CfWrap) ListStacks() ([]string, error) {
 	result, err := c.client.ListStacks(context.TODO(), &cloudformation.ListStacksInput{})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Unable to list stacks")
+		return nil, fmt.Errorf("unable to list stacks: %w", err)
 	}
 
 	stacks := make([]string, 0)
@@ -86,7 +86,7 @@ func (c *CfWrap) CreateStack(stackName string, templateBody string, parameters [
 	})
 
 	if err != nil {
-		return errors.Wrap(err, "Unable to create stack")
+		return fmt.Errorf("unable to create stack: %w", err)
 	}
 
 	return nil
@@ -98,7 +98,7 @@ func (c *CfWrap) DeleteStack(stackName string) error {
 	})
 
 	if err != nil {
-		return errors.Wrap(err, "Unable to delete stack")
+		return fmt.Errorf("unable to delete stack: %w", err)
 	}
 
 	return nil
@@ -110,7 +110,7 @@ func (c *CfWrap) WaitForStack(stackName string, timeoutMin float64) error {
 		time.Duration(timeoutMin)*time.Minute)
 
 	if err != nil {
-		return errors.Wrap(err, "Unable to wait for stack")
+		return fmt.Errorf("unable to wait for stack: %w", err)
 	}
 
 	return nil
