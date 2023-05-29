@@ -59,7 +59,7 @@ func envDeleteCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	stackInfo, err := svc.DeleteEnvironment(enclave, envDef, envName, dryRun, noOrphanDelete, fastDelete)
+	stackInfo, err := svc.DeleteEnvironment(ctx.Context, enclave, envDef, envName, dryRun, noOrphanDelete, fastDelete)
 	if err != nil {
 		return err
 	}

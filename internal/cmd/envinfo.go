@@ -39,7 +39,7 @@ func envInfoCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	envInfo, err := svc.GetEnvironmentInfo(enclave, envDef, envName)
+	envInfo, err := svc.GetEnvironmentInfo(ctx.Context, enclave, envDef, envName)
 	if err != nil {
 		return err
 	}

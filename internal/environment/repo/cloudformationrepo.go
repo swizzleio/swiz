@@ -1,28 +1,65 @@
 package repo
 
 import (
+	"context"
+	"fmt"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/environment/model"
+	"github.com/swizzleio/swiz/pkg/drivers/awswrap"
 )
 
 type CloudFormationRepo struct {
+	client *cloudformation.Client
 }
 
-func NewCloudFormationRepo(config appconfig.AppConfig) (IacDeployer, error) {
-	return &CloudFormationRepo{}, nil
+func NewCloudFormationRepo(config appconfig.AppConfig, cfg awswrap.AwsConfig, enclave model.Enclave) (IacDeployer, error) {
+	return &CloudFormationRepo{
+		client: cloudformation.NewFromConfig(cfg.GenerateConfig()),
+	}, nil
 }
 
-func (r *CloudFormationRepo) CreateStack(enclave model.Enclave, name string, template string,
+func (r *CloudFormationRepo) CreateStack(ctx context.Context, name string, template string,
 	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
 	// For dry run: aws cloudformation get-template-summary --template-body file://bootstrap.yaml --profile myprofile
+
+	cfParams := []types.Parameter{}
+	for k, v := range params {
+		cfParams = append(cfParams, types.Parameter{
+			ParameterKey:   &k,
+			ParameterValue: &v,
+		})
+	}
+
+	tags := []types.Tag{}
+	for k, v := range metadata {
+		tags = append(tags, types.Tag{
+			Key:   &k,
+			Value: &v,
+		})
+	}
+
+	_, err := r.client.CreateStack(context.TODO(), &cloudformation.CreateStackInput{
+		StackName:   &name,
+		TemplateURL: &template,
+		//TemplateBody: &templateBody,
+		Parameters: cfParams,
+		Tags:       tags,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to create stack: %w", err)
+	}
+
 	return &model.StackInfo{}, nil
 }
 
-func (r *CloudFormationRepo) DeleteStack(enclave model.Enclave, name string, dryRun bool) (*model.StackInfo, error) {
+func (r *CloudFormationRepo) DeleteStack(ctx context.Context, name string, dryRun bool) (*model.StackInfo, error) {
 	return &model.StackInfo{}, nil
 }
 
-func (r *CloudFormationRepo) UpdateStack(enclave model.Enclave, name string, template string,
+func (r *CloudFormationRepo) UpdateStack(ctx context.Context, name string, template string,
 	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
 
 	// TODO: Mimic the cloudformation deploy command:
@@ -39,26 +76,26 @@ func (r *CloudFormationRepo) UpdateStack(enclave model.Enclave, name string, tem
 	return &model.StackInfo{}, nil
 }
 
-func (r *CloudFormationRepo) GetStackInfo(enclave model.Enclave, name string) (*model.StackInfo, error) {
+func (r *CloudFormationRepo) GetStackInfo(ctx context.Context, name string) (*model.StackInfo, error) {
 	return nil, nil
 }
 
-func (r *CloudFormationRepo) GetStackOutputs(enclave model.Enclave, name string) (map[string]string, error) {
+func (r *CloudFormationRepo) GetStackOutputs(ctx context.Context, name string) (map[string]string, error) {
 	return nil, nil
 }
 
-func (r *CloudFormationRepo) ListStacks(enclave model.Enclave, envName string) ([]string, error) {
+func (r *CloudFormationRepo) ListStacks(ctx context.Context, envName string) ([]string, error) {
 	return nil, nil
 }
 
-func (r *CloudFormationRepo) ListEnvironments(enclave model.Enclave) ([]string, error) {
+func (r *CloudFormationRepo) ListEnvironments(ctx context.Context) ([]string, error) {
 	return nil, nil
 }
 
-func (r *CloudFormationRepo) GetEnvironment(enclave model.Enclave, envName string) (*model.EnvironmentInfo, error) {
+func (r *CloudFormationRepo) GetEnvironment(ctx context.Context, envName string) (*model.EnvironmentInfo, error) {
 	return nil, nil
 }
 
-func (r *CloudFormationRepo) IsEnvironmentInState(enclave model.Enclave, envName string, stacks []string, states []model.State) (bool, error) {
+func (r *CloudFormationRepo) IsEnvironmentInState(ctx context.Context, envName string, stacks []string, states []model.State) (bool, error) {
 	return true, nil
 }

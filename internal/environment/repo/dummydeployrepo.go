@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -16,14 +17,16 @@ type DummyStack struct {
 }
 
 type DummyDeployRepo struct {
-	envs   map[string]*model.EnvironmentInfo
-	stacks map[string]*DummyStack
+	envs    map[string]*model.EnvironmentInfo
+	stacks  map[string]*DummyStack
+	enclave model.Enclave
 }
 
-func NewDummyDeployRepo(config appconfig.AppConfig) IacDeployer {
+func NewDummyDeployRepo(config appconfig.AppConfig, enclave model.Enclave) IacDeployer {
 	return &DummyDeployRepo{
-		envs:   map[string]*model.EnvironmentInfo{},
-		stacks: map[string]*DummyStack{},
+		envs:    map[string]*model.EnvironmentInfo{},
+		stacks:  map[string]*DummyStack{},
+		enclave: enclave,
 	}
 }
 
@@ -35,9 +38,9 @@ func (r *DummyDeployRepo) outputParams(params map[string]string) string {
 	return output
 }
 
-func (r *DummyDeployRepo) CreateStack(enclave model.Enclave, name string, template string,
+func (r *DummyDeployRepo) CreateStack(ctx context.Context, name string, template string,
 	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
-	fmt.Printf("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, enclave.Name)
+	fmt.Printf("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, r.enclave.Name)
 	fmt.Printf(r.outputParams(params))
 	fmt.Printf("Metadata:\n%v\n", r.outputParams(metadata))
 
@@ -96,8 +99,8 @@ func (r *DummyDeployRepo) CreateStack(enclave model.Enclave, name string, templa
 	}, nil
 }
 
-func (r *DummyDeployRepo) DeleteStack(enclave model.Enclave, name string, dryRun bool) (*model.StackInfo, error) {
-	fmt.Printf("DeleteStack: %v in enclave %v\n", name, enclave.Name)
+func (r *DummyDeployRepo) DeleteStack(ctx context.Context, name string, dryRun bool) (*model.StackInfo, error) {
+	fmt.Printf("DeleteStack: %v in enclave %v\n", name, r.enclave.Name)
 
 	return &model.StackInfo{
 		Name: name,
@@ -111,9 +114,9 @@ func (r *DummyDeployRepo) DeleteStack(enclave model.Enclave, name string, dryRun
 	}, nil
 }
 
-func (r *DummyDeployRepo) UpdateStack(enclave model.Enclave, name string, template string,
+func (r *DummyDeployRepo) UpdateStack(ctx context.Context, name string, template string,
 	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
-	fmt.Printf("UpdateStack: %v with template %v in enclave %v. Params: \n", name, template, enclave.Name)
+	fmt.Printf("UpdateStack: %v with template %v in enclave %v. Params: \n", name, template, r.enclave.Name)
 	fmt.Printf(r.outputParams(params))
 	fmt.Printf("Metadata:\n%v\n", r.outputParams(metadata))
 
@@ -129,8 +132,8 @@ func (r *DummyDeployRepo) UpdateStack(enclave model.Enclave, name string, templa
 	}, nil
 }
 
-func (r *DummyDeployRepo) GetStackInfo(enclave model.Enclave, name string) (*model.StackInfo, error) {
-	fmt.Printf("GetStackInfo: %v in enclave %v\n", name, enclave.Name)
+func (r *DummyDeployRepo) GetStackInfo(ctx context.Context, name string) (*model.StackInfo, error) {
+	fmt.Printf("GetStackInfo: %v in enclave %v\n", name, r.enclave.Name)
 
 	if r.stacks[name] == nil {
 		return nil, apperr.NewNotFoundError("stack", name)
@@ -149,8 +152,8 @@ func (r *DummyDeployRepo) GetStackInfo(enclave model.Enclave, name string) (*mod
 	return stackInfo, nil
 }
 
-func (r *DummyDeployRepo) GetStackOutputs(enclave model.Enclave, name string) (map[string]string, error) {
-	fmt.Printf("GetStackOutputs: %v in enclave %v\n", name, enclave.Name)
+func (r *DummyDeployRepo) GetStackOutputs(ctx context.Context, name string) (map[string]string, error) {
+	fmt.Printf("GetStackOutputs: %v in enclave %v\n", name, r.enclave.Name)
 
 	if r.stacks[name] == nil {
 		return nil, apperr.NewNotFoundError("stack", name)
@@ -162,8 +165,8 @@ func (r *DummyDeployRepo) GetStackOutputs(enclave model.Enclave, name string) (m
 	return outputs, nil
 }
 
-func (r *DummyDeployRepo) ListStacks(enclave model.Enclave, envName string) ([]string, error) {
-	fmt.Printf("ListStacks: %v in enclave %v\n", envName, enclave.Name)
+func (r *DummyDeployRepo) ListStacks(ctx context.Context, envName string) ([]string, error) {
+	fmt.Printf("ListStacks: %v in enclave %v\n", envName, r.enclave.Name)
 
 	stacks := []string{
 		"swizboot",
@@ -174,8 +177,8 @@ func (r *DummyDeployRepo) ListStacks(enclave model.Enclave, envName string) ([]s
 	return stacks, nil
 }
 
-func (r *DummyDeployRepo) ListEnvironments(enclave model.Enclave) ([]string, error) {
-	fmt.Printf("ListEnvironments in enclave %v\n", enclave.Name)
+func (r *DummyDeployRepo) ListEnvironments(ctx context.Context) ([]string, error) {
+	fmt.Printf("ListEnvironments in enclave %v\n", r.enclave.Name)
 
 	envList := []string{}
 	for k, _ := range r.envs {
@@ -190,8 +193,8 @@ func (r *DummyDeployRepo) ListEnvironments(enclave model.Enclave) ([]string, err
 	return envList, nil
 }
 
-func (r *DummyDeployRepo) GetEnvironment(enclave model.Enclave, envName string) (*model.EnvironmentInfo, error) {
-	fmt.Printf("GetEnvironment: %v in enclave %v\n", envName, enclave.Name)
+func (r *DummyDeployRepo) GetEnvironment(ctx context.Context, envName string) (*model.EnvironmentInfo, error) {
+	fmt.Printf("GetEnvironment: %v in enclave %v\n", envName, r.enclave.Name)
 
 	env := r.envs[envName]
 
@@ -228,7 +231,7 @@ func (r *DummyDeployRepo) GetEnvironment(enclave model.Enclave, envName string) 
 	return env, nil
 }
 
-func (r *DummyDeployRepo) IsEnvironmentInState(enclave model.Enclave, envName string, stacks []string, states []model.State) (bool, error) {
+func (r *DummyDeployRepo) IsEnvironmentInState(ctx context.Context, envName string, stacks []string, states []model.State) (bool, error) {
 	// check to see if r.deployTime[name] is past the current time
 	// if it is, then set the state to complete
 	// if it isn't, then set the state to in progress

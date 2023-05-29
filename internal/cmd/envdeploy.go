@@ -55,7 +55,7 @@ func envCreateCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	stackInfo, err := svc.DeployEnvironment(enclave, envDef, envName, dryRun, noUpdate)
+	stackInfo, err := svc.DeployEnvironment(ctx.Context, enclave, envDef, envName, dryRun, noUpdate)
 	if err != nil {
 		return err
 	}

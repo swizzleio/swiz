@@ -32,7 +32,7 @@ func envListCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	envList, err := svc.ListEnvironments(enclave, envDef)
+	envList, err := svc.ListEnvironments(ctx.Context, enclave, envDef)
 	if err != nil {
 		return err
 	}
