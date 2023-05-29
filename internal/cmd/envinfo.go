@@ -48,7 +48,7 @@ func envInfoCmd(ctx *cli.Context) error {
 	fmt.Printf("Status: %v\n", envInfo.DeployStatus)
 	fmt.Printf("Stacks [Status]:\n")
 	for _, stack := range envInfo.StackDeployStatus {
-		fmt.Printf("  %v [%v]\n", stack.Name, stack.State)
+		fmt.Printf("  %v [%v]\n", stack.Name, stack.DeployStatus.State)
 	}
 
 	return nil

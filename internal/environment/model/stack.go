@@ -12,4 +12,5 @@ type StackInfo struct {
 	Name         string
 	NextAction   NextAction
 	DeployStatus DeployStatus
+	Resources    []string
 }

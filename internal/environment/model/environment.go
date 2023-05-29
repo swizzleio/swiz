@@ -19,5 +19,5 @@ type EnvironmentConfig struct {
 type EnvironmentInfo struct {
 	EnvironmentName   string
 	DeployStatus      DeployStatus
-	StackDeployStatus []DeployStatus
+	StackDeployStatus []StackInfo
 }

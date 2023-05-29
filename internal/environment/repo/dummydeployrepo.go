@@ -71,18 +71,28 @@ func (r *DummyDeployRepo) CreateStack(ctx context.Context, name string, template
 			Reason:  "It's done",
 			Details: "An awesome environment has been created",
 		},
-		StackDeployStatus: []model.DeployStatus{
+		StackDeployStatus: []model.StackInfo{
 			{
-				Name:    "swiz-boot",
-				State:   model.StateComplete,
-				Reason:  "It's done",
-				Details: "An awesome stack has been created",
+				Name: "swiz-boot",
+				DeployStatus: model.DeployStatus{
+					Name:    "swiz-boot",
+					State:   model.StateComplete,
+					Reason:  "It's done",
+					Details: "An awesome stack has been created",
+				},
+				NextAction: model.NextActionNone,
+				Resources:  []string{},
 			},
 			{
-				Name:    "swiz-sleep",
-				State:   model.StateComplete,
-				Reason:  "It's done",
-				Details: "An awesome stack has been created",
+				Name: "swiz-sleep",
+				DeployStatus: model.DeployStatus{
+					Name:    "swiz-sleep",
+					State:   model.StateComplete,
+					Reason:  "It's done",
+					Details: "An awesome stack has been created",
+				},
+				NextAction: model.NextActionNone,
+				Resources:  []string{},
 			},
 		},
 	}
@@ -96,6 +106,7 @@ func (r *DummyDeployRepo) CreateStack(ctx context.Context, name string, template
 			Details: "An awesome stack has been created",
 		},
 		NextAction: model.NextActionCreate,
+		Resources:  []string{},
 	}, nil
 }
 
@@ -111,6 +122,7 @@ func (r *DummyDeployRepo) DeleteStack(ctx context.Context, name string, dryRun b
 			Details: "An awesome stack has been created",
 		},
 		NextAction: model.NextActionDelete,
+		Resources:  []string{},
 	}, nil
 }
 
@@ -129,6 +141,7 @@ func (r *DummyDeployRepo) UpdateStack(ctx context.Context, name string, template
 			Details: "An awesome stack has been created",
 		},
 		NextAction: model.NextActionUpdate,
+		Resources:  []string{},
 	}, nil
 }
 
@@ -147,6 +160,8 @@ func (r *DummyDeployRepo) GetStackInfo(ctx context.Context, name string) (*model
 			Reason:  "It's done",
 			Details: "An awesome stack has been created",
 		},
+		NextAction: model.NextActionNone,
+		Resources:  []string{},
 	}
 
 	return stackInfo, nil
@@ -207,18 +222,28 @@ func (r *DummyDeployRepo) GetEnvironment(ctx context.Context, envName string) (*
 				Reason:  "It's done",
 				Details: "An awesome environment has been created",
 			},
-			StackDeployStatus: []model.DeployStatus{
+			StackDeployStatus: []model.StackInfo{
 				{
-					Name:    "swiz-boot",
-					State:   model.StateComplete,
-					Reason:  "It's done",
-					Details: "An awesome stack has been created",
+					Name: "swiz-boot",
+					DeployStatus: model.DeployStatus{
+						Name:    "swiz-boot",
+						State:   model.StateComplete,
+						Reason:  "It's done",
+						Details: "An awesome stack has been created",
+					},
+					NextAction: model.NextActionNone,
+					Resources:  []string{},
 				},
 				{
-					Name:    "swiz-sleep",
-					State:   model.StateComplete,
-					Reason:  "It's done",
-					Details: "An awesome stack has been created",
+					Name: "swiz-sleep",
+					DeployStatus: model.DeployStatus{
+						Name:    "swiz-sleep",
+						State:   model.StateComplete,
+						Reason:  "It's done",
+						Details: "An awesome stack has been created",
+					},
+					NextAction: model.NextActionNone,
+					Resources:  []string{},
 				},
 			},
 		}
