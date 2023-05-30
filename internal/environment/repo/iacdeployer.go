@@ -13,10 +13,10 @@ type IacDeployer interface {
 	UpdateStack(ctx context.Context, name string, template string, params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error)
 	GetStackInfo(ctx context.Context, name string) (*model.StackInfo, error)
 	GetStackOutputs(ctx context.Context, name string) (map[string]string, error)
-	ListStacks(ctx context.Context, envName string) ([]string, error)
+	ListStacks(ctx context.Context, envName string) ([]model.StackInfo, error)
 	ListEnvironments(ctx context.Context) ([]string, error)
 	GetEnvironment(ctx context.Context, envName string) (*model.EnvironmentInfo, error)
-	IsEnvironmentInState(ctx context.Context, envName string, stacks []string, states []model.State) (bool, error)
+	IsEnvironmentInState(ctx context.Context, envName string, stacks []string, states []model.State) (bool, []string, error)
 }
 
 type IacRepoFactory struct {

@@ -71,7 +71,7 @@ func (r *DummyDeployRepo) CreateStack(ctx context.Context, name string, template
 			Reason:  "It's done",
 			Details: "An awesome environment has been created",
 		},
-		StackDeployStatus: []model.StackInfo{
+		StackInfo: []model.StackInfo{
 			{
 				Name: "swiz-boot",
 				DeployStatus: model.DeployStatus{
@@ -180,13 +180,43 @@ func (r *DummyDeployRepo) GetStackOutputs(ctx context.Context, name string) (map
 	return outputs, nil
 }
 
-func (r *DummyDeployRepo) ListStacks(ctx context.Context, envName string) ([]string, error) {
+func (r *DummyDeployRepo) ListStacks(ctx context.Context, envName string) ([]model.StackInfo, error) {
 	fmt.Printf("ListStacks: %v in enclave %v\n", envName, r.enclave.Name)
 
-	stacks := []string{
-		"swizboot",
-		"swizsleep",
-		"swizrogue",
+	stacks := []model.StackInfo{
+		{
+			Name: "swizboot",
+			DeployStatus: model.DeployStatus{
+				Name:    "swizboot",
+				State:   model.StateComplete,
+				Reason:  "It's done",
+				Details: "An awesome stack has been created",
+			},
+			NextAction: model.NextActionNone,
+			Resources:  []string{},
+		},
+		{
+			Name: "swizsleep",
+			DeployStatus: model.DeployStatus{
+				Name:    "swizsleep",
+				State:   model.StateComplete,
+				Reason:  "It's done",
+				Details: "An awesome stack has been created",
+			},
+			NextAction: model.NextActionNone,
+			Resources:  []string{},
+		},
+		{
+			Name: "swizrogue",
+			DeployStatus: model.DeployStatus{
+				Name:    "swizrogue",
+				State:   model.StateComplete,
+				Reason:  "It's done",
+				Details: "An awesome stack has been created",
+			},
+			NextAction: model.NextActionNone,
+			Resources:  []string{},
+		},
 	}
 
 	return stacks, nil
@@ -222,7 +252,7 @@ func (r *DummyDeployRepo) GetEnvironment(ctx context.Context, envName string) (*
 				Reason:  "It's done",
 				Details: "An awesome environment has been created",
 			},
-			StackDeployStatus: []model.StackInfo{
+			StackInfo: []model.StackInfo{
 				{
 					Name: "swiz-boot",
 					DeployStatus: model.DeployStatus{
@@ -256,7 +286,7 @@ func (r *DummyDeployRepo) GetEnvironment(ctx context.Context, envName string) (*
 	return env, nil
 }
 
-func (r *DummyDeployRepo) IsEnvironmentInState(ctx context.Context, envName string, stacks []string, states []model.State) (bool, error) {
+func (r *DummyDeployRepo) IsEnvironmentInState(ctx context.Context, envName string, stacks []string, states []model.State) (bool, []string, error) {
 	// check to see if r.deployTime[name] is past the current time
 	// if it is, then set the state to complete
 	// if it isn't, then set the state to in progress
@@ -269,21 +299,21 @@ func (r *DummyDeployRepo) IsEnvironmentInState(ctx context.Context, envName stri
 		}
 	}
 
-	stacksComplete := 0
+	stackCompleteList := []string{}
 
 	if createState {
 		for _, stack := range stacks {
 			stackInfo := r.stacks[stack]
 			if nil == stackInfo {
-				return false, apperr.NewNotFoundError("stack", stack)
+				return false, stackCompleteList, apperr.NewNotFoundError("stack", stack)
 			}
 			if stackInfo.DeployTime.Before(time.Now()) {
-				stacksComplete++
+				stackCompleteList = append(stackCompleteList, stack)
 			}
 		}
 	} else {
-		stacksComplete = len(stacks)
+		stackCompleteList = stacks
 	}
 
-	return stacksComplete == len(stacks), nil
+	return len(stackCompleteList) == len(stacks), stackCompleteList, nil
 }

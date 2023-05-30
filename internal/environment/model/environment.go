@@ -17,7 +17,7 @@ type EnvironmentConfig struct {
 }
 
 type EnvironmentInfo struct {
-	EnvironmentName   string
-	DeployStatus      DeployStatus
-	StackDeployStatus []StackInfo
+	EnvironmentName string
+	DeployStatus    DeployStatus
+	StackInfo       []StackInfo
 }

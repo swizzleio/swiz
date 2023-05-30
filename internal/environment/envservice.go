@@ -160,7 +160,7 @@ func (s EnvService) DeleteEnvironment(ctx context.Context, enclaveName string, e
 
 		waitList := []string{}
 		for _, stack := range stackList {
-			stackName := s.generateStackName(env, envName, stack)
+			stackName := s.generateStackName(env, envName, stack.Name)
 			if _, ok := stackDeleted[stackName]; !ok {
 				iacDeploy, iacErr = s.iacFactory.GetDeployer(*enclave, "")
 				if iacErr != nil {
@@ -285,14 +285,14 @@ func (s EnvService) generateStackName(env *model.EnvironmentConfig, envName stri
 
 func (s EnvService) generateMetadata(envName string, envDef string, enclaveName string, isCreate bool) map[string]string {
 	retVal := map[string]string{
-		"SwzEnv": envName,
+		model.StackKeyEnvName: envName,
+		model.StackKeyEnvDef:  envDef,
+		model.StackKeyEnclave: enclaveName,
 	}
 
 	if isCreate {
-		retVal["SwzCreateDate"] = time.Now().Format(time.RFC3339)
-		retVal["SwzCreateUser"] = os.Getenv("USER")
-		retVal["SwzEnvDef"] = envDef
-		retVal["SwzEnclave"] = enclaveName
+		retVal[model.StackKeyCreateDate] = time.Now().Format(time.RFC3339)
+		retVal[model.StackKeyCreateUser] = os.Getenv("USER")
 	}
 
 	return retVal
@@ -307,10 +307,28 @@ func (s EnvService) waitForStacksComplete(ctx context.Context, enclave *model.En
 	stopPoll := false
 	for !stopPoll {
 		var envErr error
-		stopPoll, envErr = iacDeploy.IsEnvironmentInState(ctx, envName, stackList, []model.State{state})
+		var stackCompleteList []string
+		stopPoll, stackCompleteList, envErr = iacDeploy.IsEnvironmentInState(ctx, envName, stackList, []model.State{state})
 		if envErr != nil {
 			return envErr
 		}
+
+		// Remove stacks in state from stackList
+		// Create a map of elements to remove for faster lookup
+		toRemove := map[string]bool{}
+		for _, v := range stackCompleteList {
+			toRemove[v] = true
+		}
+
+		// Filter stackCompleteList
+		newStackList := []string{}
+		for _, v := range stackList {
+			if toRemove[v] == false {
+				newStackList = append(newStackList, v)
+			}
+		}
+
+		stackList = newStackList
 
 		if !stopPoll {
 			time.Sleep(POLL_INTERVAL_SEC * time.Second)

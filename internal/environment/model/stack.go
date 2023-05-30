@@ -1,5 +1,13 @@
 package model
 
+const (
+	StackKeyEnvName    = "SwzEnv"
+	StackKeyCreateDate = "SwzCreateDate"
+	StackKeyCreateUser = "SwzCreateUser"
+	StackKeyEnvDef     = "SwzEnvDef"
+	StackKeyEnclave    = "SwzEnclave"
+)
+
 type StackConfig struct {
 	Version      int `yaml:"version"`
 	Name         string

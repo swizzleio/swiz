@@ -50,6 +50,8 @@ func envCreateCmd(ctx *cli.Context) error {
 	dryRun := ctx.Bool("dry-run")
 	noUpdate := ctx.Bool("no-update-deploy")
 
+	// TODO: Add field to select stacks or use all
+
 	svc, err := environment.NewEnvService(appConfig)
 	if err != nil {
 		return err

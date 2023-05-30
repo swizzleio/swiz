@@ -4,15 +4,22 @@ type State int
 
 const (
 	StateUnknown State = iota
+	StateDryRun
+	StateComplete
+	StateDeleted
 	StateCreating
 	StateUpdating
 	StateDeleting
 	StateRollingBack
 	StateFailed
-	StateComplete
-	StateDeleted
-	StateDryRun
 )
+
+func (e State) GetPriority(newState State) State {
+	if newState > e {
+		return newState
+	}
+	return e
+}
 
 func (e State) String() string {
 	switch e {
