@@ -59,6 +59,7 @@ func (s EnvService) DeployEnvironment(ctx context.Context, enclaveName string, e
 	// Create stacks
 	stackInfoList := []*model.StackInfo{}
 	for _, stackDep := range stackDeps {
+		deployList := make([]*model.StackConfig, len(stackDep))
 		waitList := make([]string, len(stackDep))
 		for i, stack := range stackDep {
 			params := ps.GetParams(stack.Parameters)
@@ -71,6 +72,7 @@ func (s EnvService) DeployEnvironment(ctx context.Context, enclaveName string, e
 
 			stackInfoList = append(stackInfoList, stackInfo)
 			waitList[i] = stackInfo.Name
+			deployList[i] = stack
 		}
 
 		// Wait for completion
@@ -80,18 +82,18 @@ func (s EnvService) DeployEnvironment(ctx context.Context, enclaveName string, e
 		}
 
 		// Get outputs
-		for _, stackName := range waitList {
+		for _, stack := range deployList {
 			iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "", "")
 			if iacErr != nil {
 				return nil, iacErr
 			}
 
-			out, oerr := iacDeploy.GetStackOutputs(ctx, stackName)
+			out, oerr := iacDeploy.GetStackOutputs(ctx, stack.Name)
 			if oerr != nil {
 				return nil, oerr
 			}
 
-			ps.SetParams(stackName, out)
+			ps.SetParams(stack.RawName, out)
 		}
 	}
 
@@ -291,7 +293,7 @@ func (s EnvService) generateMetadata(envName string, envDef string, enclaveName 
 	}
 
 	if isCreate {
-		retVal[model.StackKeyCreateDate] = time.Now().Format(time.RFC3339)
+		//retVal[model.StackKeyCreateDate] = time.Now().Format(time.RFC3339)
 		retVal[model.StackKeyCreateUser] = os.Getenv("USER")
 	}
 

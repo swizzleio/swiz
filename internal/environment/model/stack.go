@@ -11,6 +11,7 @@ const (
 type StackConfig struct {
 	Version      int `yaml:"version"`
 	Name         string
+	RawName      string
 	Order        int
 	Parameters   map[string]string `yaml:"params"`
 	TemplateFile string            `yaml:"template_file"`

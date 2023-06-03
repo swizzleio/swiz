@@ -70,6 +70,7 @@ func (r *EnvironmentRepo) GetEnvironmentByDef(envDef string) (*model.Environment
 
 			stack.TemplateFile = templateFile
 			stack.Name = stackCfg.Name
+			stack.RawName = stackCfg.Name
 			stack.Order = stackCfg.Order
 			envCfg.Stacks[stackCfg.Name] = stack
 		}

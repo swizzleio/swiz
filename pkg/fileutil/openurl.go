@@ -86,6 +86,16 @@ func WriteUrlWithBaseDir(baseDir string, location string, data []byte) error {
 	return fmt.Errorf("unsupported protocol: %s", u.Scheme)
 }
 
+func GetScheme(location string) (string, error) {
+	// Determine the protocol
+	u, err := url.Parse(location)
+	if err != nil {
+		return "", err
+	}
+
+	return u.Scheme, nil
+}
+
 func httpGet(location string) ([]byte, error) {
 
 	// Send HTTP GET request to the file URL

@@ -2,14 +2,21 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/smithy-go"
 	"github.com/swizzleio/swiz/internal/appconfig"
+	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
+	"github.com/swizzleio/swiz/pkg/fileutil"
 	"strings"
 	"time"
 )
+
+const CfPollTimeSec = 5
 
 type CloudFormationRepo struct {
 	client *cloudformation.Client
@@ -28,28 +35,36 @@ func (r *CloudFormationRepo) CreateStack(ctx context.Context, name string, templ
 	// For dry run: aws cloudformation get-template-summary --template-body file://bootstrap.yaml --profile myprofile
 	var stackInfo *model.StackInfo
 
+	templateBody, templateUrl, err := r.templateOrUrl(template)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get template body: %w", err)
+	}
+
 	templateResp, err := r.client.GetTemplateSummary(ctx, &cloudformation.GetTemplateSummaryInput{
-		TemplateURL: &template,
+		TemplateURL:  templateUrl,
+		TemplateBody: templateBody,
 	})
-	if err != nil && dryRun {
-		// Note, we only error out if this is a dry run
+	if err != nil {
 		return nil, fmt.Errorf("unable to get template summary: %w", err)
 	}
+
+	resources := templateResp.ResourceTypes
 
 	state := model.StateDryRun
 	reason := "Dry Run"
 	details := ""
 	if !dryRun {
-		cfParams := r.generateParams(params)
+		cfParams := r.generateParams(params, templateResp.Parameters)
 		tags := r.generateTags(metadata)
 
 		var resp *cloudformation.CreateStackOutput
 		resp, err = r.client.CreateStack(ctx, &cloudformation.CreateStackInput{
-			StackName:   &name,
-			TemplateURL: &template,
-			//TemplateBody: &templateBody,
-			Parameters: cfParams,
-			Tags:       tags,
+			StackName:    &name,
+			TemplateURL:  templateUrl,
+			TemplateBody: templateBody,
+			Parameters:   cfParams,
+			Tags:         tags,
+			OnFailure:    types.OnFailureDelete,
 			Capabilities: []types.Capability{
 				types.CapabilityCapabilityNamedIam,
 			},
@@ -64,11 +79,6 @@ func (r *CloudFormationRepo) CreateStack(ctx context.Context, name string, templ
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to create stack: %w", err)
-	}
-
-	resources := []string{}
-	if templateResp != nil {
-		resources = templateResp.ResourceTypes
 	}
 
 	stackInfo = &model.StackInfo{
@@ -138,15 +148,29 @@ func (r *CloudFormationRepo) UpdateStack(ctx context.Context, name string, templ
 	// Get the current timestamp
 	t := time.Now()
 	timestamp := t.Format("20060102150405")
-	changeSetName := fmt.Sprintf("Swz-%s", name, timestamp)
+	changeSetName := fmt.Sprintf("Swz-%s-%s", name, timestamp)
+
+	templateBody, templateUrl, err := r.templateOrUrl(template)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get template body: %w", err)
+	}
+
+	templateResp, err := r.client.GetTemplateSummary(ctx, &cloudformation.GetTemplateSummaryInput{
+		TemplateURL:  templateUrl,
+		TemplateBody: templateBody,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to get template summary: %w", err)
+	}
 
 	// Create change set
-	cfParams := r.generateParams(params)
+	cfParams := r.generateParams(params, templateResp.Parameters)
 	tags := r.generateTags(metadata)
-	_, err := r.client.CreateChangeSet(ctx, &cloudformation.CreateChangeSetInput{
+	_, err = r.client.CreateChangeSet(ctx, &cloudformation.CreateChangeSetInput{
 		ChangeSetName: &changeSetName,
 		StackName:     &name,
-		TemplateURL:   &template,
+		TemplateURL:   templateUrl,
+		TemplateBody:  templateBody,
 		Parameters:    cfParams,
 		Tags:          tags,
 		Capabilities: []types.Capability{
@@ -157,13 +181,29 @@ func (r *CloudFormationRepo) UpdateStack(ctx context.Context, name string, templ
 		return nil, fmt.Errorf("failed to create change set, %w", err)
 	}
 
-	// Describe change set
-	resp, err := r.client.DescribeChangeSet(ctx, &cloudformation.DescribeChangeSetInput{
-		ChangeSetName: &changeSetName,
-		StackName:     &name,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to describe change set, %w", err)
+	// Wait for change set and fetch info
+	notReady := true
+	var resp *cloudformation.DescribeChangeSetOutput
+	for notReady {
+		resp, err = r.client.DescribeChangeSet(ctx, &cloudformation.DescribeChangeSetInput{
+			ChangeSetName: &changeSetName,
+			StackName:     &name,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe change set, %w", err)
+		}
+
+		if len(resp.Changes) == 0 {
+			// Empty change set, set dry run to true so we don't execute
+			dryRun = true
+			notReady = false
+		}
+
+		if resp.ExecutionStatus == types.ExecutionStatusAvailable {
+			notReady = false
+		} else {
+			time.Sleep(CfPollTimeSec * time.Second)
+		}
 	}
 
 	resourceChanges := []string{}
@@ -219,6 +259,10 @@ func (r *CloudFormationRepo) GetStackInfo(ctx context.Context, name string) (*mo
 	})
 
 	if err != nil {
+		var apiError *smithy.GenericAPIError
+		if errors.As(err, &apiError) && apiError.Code == "ValidationError" {
+			return nil, apperr.NewNotFoundError("stack", name)
+		}
 		return nil, fmt.Errorf("fetching stack info: %w", err)
 	}
 
@@ -242,8 +286,8 @@ func (r *CloudFormationRepo) GetStackInfo(ctx context.Context, name string) (*mo
 			DeployStatus: model.DeployStatus{
 				Name:    name,
 				State:   r.cfStatusToState(resp.Stacks[0].StackStatus),
-				Reason:  *resp.Stacks[0].StackStatusReason,
-				Details: *resp.Stacks[0].StackId,
+				Reason:  r.strOrEmpty(resp.Stacks[0].StackStatusReason),
+				Details: r.strOrEmpty(resp.Stacks[0].StackId),
 			},
 			Resources: resourceList,
 		}, nil
@@ -265,12 +309,12 @@ func (r *CloudFormationRepo) GetStackOutputs(ctx context.Context, name string) (
 
 	if len(resp.Stacks) > 0 {
 		for _, item := range resp.Stacks[0].Outputs {
-			outputs[*item.OutputKey] = *item.OutputValue
+			outputs[*item.OutputKey] = r.strOrEmpty(item.OutputValue)
 		}
 	} else {
 		return nil, fmt.Errorf("unable to find stack")
 	}
-	return nil, nil
+	return outputs, nil
 }
 
 func (r *CloudFormationRepo) ListStacks(ctx context.Context, envName string) ([]model.StackInfo, error) {
@@ -282,10 +326,10 @@ func (r *CloudFormationRepo) ListStacks(ctx context.Context, envName string) ([]
 				Name:       *stack.StackName,
 				NextAction: model.NextActionUpdate,
 				DeployStatus: model.DeployStatus{
-					Name:    *stack.StackName,
+					Name:    r.strOrEmpty(stack.StackName),
 					State:   r.cfStatusToState(stack.StackStatus),
-					Reason:  *stack.StackStatusReason,
-					Details: *stack.StackId,
+					Reason:  r.strOrEmpty(stack.StackStatusReason),
+					Details: r.strOrEmpty(stack.StackId),
 				},
 				Resources: []string{}, // This is left blank because it's an expensive call
 			})
@@ -378,10 +422,36 @@ func (r *CloudFormationRepo) IsEnvironmentInState(ctx context.Context, envName s
 					stackCompleteList = append(stackCompleteList, *stack.StackName)
 				}
 			}
+
+			if state == model.StateFailed {
+				return false, nil, fmt.Errorf("stack %v failed", stackName)
+			}
 		}
 	}
 
 	return len(stackCompleteList) == len(stacks), stackCompleteList, nil
+}
+
+func (r *CloudFormationRepo) templateOrUrl(template string) (templateBody *string, templateUrl *string, err error) {
+	scheme, err := fileutil.GetScheme(template)
+	if err != nil {
+		return
+	}
+
+	if scheme == "file" {
+		var b []byte
+		b, err = fileutil.OpenUrl(template)
+		if err != nil {
+			return
+		}
+
+		str := string(b)
+		templateBody = &str
+	} else {
+		templateUrl = &template
+	}
+
+	return
 }
 
 func (r *CloudFormationRepo) iterateAllStacks(ctx context.Context,
@@ -414,21 +484,37 @@ func (r *CloudFormationRepo) iterateAllStacks(ctx context.Context,
 func (r *CloudFormationRepo) generateTags(metadata map[string]string) []types.Tag {
 	tags := []types.Tag{}
 	for k, v := range metadata {
-		tags = append(tags, types.Tag{
-			Key:   &k,
-			Value: &v,
-		})
+		tag := types.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		}
+		tags = append(tags, tag)
 	}
 	return tags
 }
 
-func (r *CloudFormationRepo) generateParams(params map[string]string) []types.Parameter {
+func (r *CloudFormationRepo) strOrEmpty(str *string) string {
+	if str == nil {
+		return ""
+	}
+	return *str
+}
+
+func (r *CloudFormationRepo) generateParams(params map[string]string, paramList []types.ParameterDeclaration) []types.Parameter {
+
+	isParamNeeded := map[string]bool{}
+	for _, param := range paramList {
+		isParamNeeded[*param.ParameterKey] = true
+	}
+
 	cfParams := []types.Parameter{}
 	for k, v := range params {
-		cfParams = append(cfParams, types.Parameter{
-			ParameterKey:   &k,
-			ParameterValue: &v,
-		})
+		if isParamNeeded[k] {
+			cfParams = append(cfParams, types.Parameter{
+				ParameterKey:   aws.String(k),
+				ParameterValue: aws.String(v),
+			})
+		}
 	}
 	return cfParams
 }
