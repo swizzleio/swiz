@@ -22,7 +22,7 @@ type DummyDeployRepo struct {
 	enclave model.Enclave
 }
 
-func NewDummyDeployRepo(config appconfig.AppConfig, enclave model.Enclave) IacDeployer {
+func NewDummyDeployRepo(config appconfig.AppConfig, enclave model.Enclave, provider *model.EncProvider) IacDeployer {
 	return &DummyDeployRepo{
 		envs:    map[string]*model.EnvironmentInfo{},
 		stacks:  map[string]*DummyStack{},

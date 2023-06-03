@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/environment/model"
-	"github.com/swizzleio/swiz/pkg/drivers/awswrap"
 	"strings"
 	"time"
 )
@@ -16,10 +15,12 @@ type CloudFormationRepo struct {
 	client *cloudformation.Client
 }
 
-func NewCloudFormationRepo(config appconfig.AppConfig, cfg awswrap.AwsConfig, enclave model.Enclave) (IacDeployer, error) {
+func NewCloudFormationRepo(config appconfig.AppConfig, enclave model.Enclave, provider *model.EncProvider) IacDeployer {
+	cfg := provider.ToAwsConfig()
+
 	return &CloudFormationRepo{
 		client: cloudformation.NewFromConfig(cfg.GenerateConfig()),
-	}, nil
+	}
 }
 
 func (r *CloudFormationRepo) CreateStack(ctx context.Context, name string, template string,

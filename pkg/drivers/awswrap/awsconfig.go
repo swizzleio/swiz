@@ -16,6 +16,7 @@ var DefaultRegion = "us-east-1"
 
 type AwsConfig struct {
 	Name      string
+	Profile   string
 	AccountId string
 	Region    string
 	Endpoint  string
@@ -98,7 +99,8 @@ func (a AwsConfig) GenerateConfig() aws.Config {
 		cfgOpt = config.WithEndpointResolverWithOptions(customResolver)
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), cfgOpt)
+	cfg, err := config.LoadDefaultConfig(context.TODO(), cfgOpt,
+		config.WithSharedConfigProfile(a.Profile))
 	if err != nil {
 		// handle error
 		log.Fatalf("creating awswrap session %v", err)

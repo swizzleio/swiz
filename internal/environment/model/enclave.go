@@ -1,5 +1,7 @@
 package model
 
+import "github.com/swizzleio/swiz/pkg/drivers/awswrap"
+
 type EnvBehavior struct {
 	NoUpdateDeploy *bool `yaml:"no_update_deploy"`
 	NoOrphanDelete *bool `yaml:"no_orphan_delete"`
@@ -16,6 +18,7 @@ type EncProvider struct {
 type Enclave struct {
 	Name            string            `yaml:"name"`
 	DefaultProvider string            `yaml:"default_provider"`
+	DefaultIac      string            `yaml:"default_iac"`
 	Providers       []EncProvider     `yaml:"providers"`
 	EnvBehavior     EnvBehavior       `yaml:"env_behavior"`
 	DomainName      string            `yaml:"domain_name"`
@@ -33,4 +36,12 @@ func (e Enclave) GetProvider(providerName string) *EncProvider {
 		}
 	}
 	return nil
+}
+
+func (e EncProvider) ToAwsConfig() awswrap.AwsConfig {
+	return awswrap.AwsConfig{
+		Profile:   e.Name,
+		AccountId: e.AccountId,
+		Region:    e.Region,
+	}
 }

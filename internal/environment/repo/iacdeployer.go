@@ -7,6 +7,15 @@ import (
 	"github.com/swizzleio/swiz/internal/environment/model"
 )
 
+const (
+	IacProvDummy = "DUMMY"
+	IacProvAws   = "AWS"
+	IacTypeDummy = "Dummy"
+	IacTypeCf    = "Cloudformation"
+)
+
+const defaultIacType = IacTypeCf
+
 type IacDeployer interface {
 	CreateStack(ctx context.Context, name string, template string, params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error)
 	DeleteStack(ctx context.Context, name string, dryRun bool) (*model.StackInfo, error)
@@ -19,28 +28,52 @@ type IacDeployer interface {
 	IsEnvironmentInState(ctx context.Context, envName string, stacks []string, states []model.State) (bool, []string, error)
 }
 
+type iacRepoMapping struct {
+	provider string
+	iacType  string
+}
+
 type IacRepoFactory struct {
 	config appconfig.AppConfig
-	iacMap map[string]IacDeployer
+	iacMap map[iacRepoMapping]IacDeployer
 }
 
 func NewIacRepoFactory(config appconfig.AppConfig) *IacRepoFactory {
 	return &IacRepoFactory{
 		config: config,
-		iacMap: map[string]IacDeployer{},
+		iacMap: map[iacRepoMapping]IacDeployer{},
 	}
 }
 
-func (f IacRepoFactory) GetDeployer(enclave model.Enclave, providerName string) (IacDeployer, error) {
+func (f IacRepoFactory) GetDeployer(enclave model.Enclave, providerName string, iacType string) (IacDeployer, error) {
 
 	provider := enclave.GetProvider(providerName)
 	if provider == nil {
-		return nil, apperr.NewNotFoundError("enclave", providerName)
+		return nil, apperr.NewNotFoundError("provider", providerName)
 	}
 
-	if f.iacMap["Dummy"] == nil {
-		f.iacMap["Dummy"] = NewDummyDeployRepo(f.config, enclave)
+	if iacType == "" {
+		iacType = enclave.DefaultIac
+		if iacType == "" {
+			iacType = defaultIacType
+		}
 	}
 
-	return f.iacMap["Dummy"], nil
+	mapping := iacRepoMapping{
+		provider: providerName,
+		iacType:  iacType,
+	}
+
+	if f.iacMap[mapping] == nil {
+		switch iacType {
+		case IacTypeCf:
+			f.iacMap[mapping] = NewCloudFormationRepo(f.config, enclave, provider)
+		case IacTypeDummy:
+			f.iacMap[mapping] = NewDummyDeployRepo(f.config, enclave, provider)
+		default:
+			return nil, apperr.NewNotFoundError("iac type", iacType)
+		}
+	}
+
+	return f.iacMap[mapping], nil
 }
