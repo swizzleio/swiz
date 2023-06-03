@@ -351,7 +351,7 @@ func (r *CloudFormationRepo) ListEnvironments(ctx context.Context) ([]string, er
 	uniqueValues := map[string]struct{}{}
 
 	err := r.iterateAllStacks(ctx, func(stack types.Stack, tag types.Tag) (bool, error) {
-		if *tag.Key == model.StackKeyEnvDef {
+		if *tag.Key == model.StackKeyEnvName {
 			uniqueValues[*tag.Value] = struct{}{}
 
 			return true, nil
