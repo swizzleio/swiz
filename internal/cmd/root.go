@@ -47,7 +47,7 @@ func Execute() {
 		Version:  Version,
 		Commands: commands,
 		Before: func(ctx *cli.Context) error {
-			err := commandPreflight(ctx)
+			err := genCommandPreflight(true)(ctx)
 			if err != nil && !os.IsNotExist(err) {
 				fmt.Printf("Error: %v\n", err)
 			}
