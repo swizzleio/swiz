@@ -32,7 +32,6 @@ func NewCloudFormationRepo(config appconfig.AppConfig, enclave model.Enclave, pr
 
 func (r *CloudFormationRepo) CreateStack(ctx context.Context, name string, template string,
 	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
-	// For dry run: aws cloudformation get-template-summary --template-body file://bootstrap.yaml --profile myprofile
 	var stackInfo *model.StackInfo
 
 	templateBody, templateUrl, err := r.templateOrUrl(template)

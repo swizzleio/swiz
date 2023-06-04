@@ -7,6 +7,7 @@ enclave_def:
     default_iac: "Cloudformation"
     env_behavior:
       no_orphan_delete: true
+      deploy_all_stacks: true
     providers:
       - name: swiz-test # Currently only a single provider is supported per enclave definition
         provider_id: AWS

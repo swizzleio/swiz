@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/swizzleio/swiz/internal/environment"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 )
@@ -31,6 +32,15 @@ func init() {
 				Usage:       "Enclave to use",
 				DefaultText: "",
 			},
+			&cli.StringSliceFlag{
+				Name:    "stack",
+				Aliases: []string{"s"},
+				Usage:   "Stacks to deploy. Can be specified multiple times or be a comma seperated list",
+			},
+			&cli.BoolFlag{
+				Name:  "deploy-all",
+				Usage: "Deploy all stacks",
+			},
 			&cli.BoolFlag{
 				Name:  "dry-run",
 				Usage: "If this is a dry run (also similar to plan)",
@@ -47,17 +57,23 @@ func envCreateCmd(ctx *cli.Context) error {
 	enclave := ctx.String("enclave")
 	envDef := ctx.String("env-def")
 	envName := ctx.String("name")
+	stacks := ctx.StringSlice("stack")
+	deployAll := ctx.Bool("deploy-all")
 	dryRun := ctx.Bool("dry-run")
 	noUpdate := ctx.Bool("no-update-deploy")
 
-	// TODO: Add field to select stacks or use all
+	stackList := []string{}
+	for _, stack := range stacks {
+		commaSeperate := strings.Split(stack, ",")
+		stackList = append(stackList, commaSeperate...)
+	}
 
 	svc, err := environment.NewEnvService(appConfig)
 	if err != nil {
 		return err
 	}
 
-	stackInfo, err := svc.DeployEnvironment(ctx.Context, enclave, envDef, envName, dryRun, noUpdate)
+	stackInfo, err := svc.DeployEnvironment(ctx.Context, enclave, envDef, envName, deployAll, stackList, dryRun, noUpdate)
 	if err != nil {
 		return err
 	}

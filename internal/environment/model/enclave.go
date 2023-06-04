@@ -3,9 +3,10 @@ package model
 import "github.com/swizzleio/swiz/pkg/drivers/awswrap"
 
 type EnvBehavior struct {
-	NoUpdateDeploy *bool `yaml:"no_update_deploy"`
-	NoOrphanDelete *bool `yaml:"no_orphan_delete"`
-	FastDelete     *bool `yaml:"fast_delete"`
+	NoUpdateDeploy  *bool `yaml:"no_update_deploy"`
+	NoOrphanDelete  *bool `yaml:"no_orphan_delete"`
+	DeployAllStacks *bool `yaml:"deploy_all_stacks"`
+	FastDelete      *bool `yaml:"fast_delete"`
 }
 
 type EncProvider struct {

@@ -39,7 +39,7 @@ func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
 	}, nil
 }
 
-func (s EnvService) DeployEnvironment(ctx context.Context, enclaveName string, envDef string, envName string, dryRun bool,
+func (s EnvService) DeployEnvironment(ctx context.Context, enclaveName string, envDef string, envName string, deployAll bool, stacksToDeploy []string, dryRun bool,
 	noUpdate bool) ([]*model.StackInfo, error) {
 	// Get environment definition
 	env, enclave, err := s.getEnvEnclave(enclaveName, envDef)
@@ -47,8 +47,9 @@ func (s EnvService) DeployEnvironment(ctx context.Context, enclaveName string, e
 		return nil, err
 	}
 
-	// Determine no update behavior
+	// Determine enclave behavior or config behavior
 	noUpdate = configutil.FlagOrConfig(noUpdate, enclave.EnvBehavior.NoUpdateDeploy)
+	deployAll = configutil.FlagOrConfig(deployAll, enclave.EnvBehavior.DeployAllStacks)
 
 	// Init param store
 	ps := preprocessor.NewParamStore(enclave.Parameters)
@@ -56,23 +57,41 @@ func (s EnvService) DeployEnvironment(ctx context.Context, enclaveName string, e
 	// Determine dependency order
 	stackDeps := s.buildDependencyOrder(env.Stacks, false)
 
+	// Determine stacks to deploy
+	if !deployAll && (stacksToDeploy == nil || len(stacksToDeploy) == 0) {
+		return nil, fmt.Errorf("specify a list of stacks to deploy or provide a flag to deploy all stacks")
+	}
+
+	shouldDeploy := map[string]bool{}
+	if len(stacksToDeploy) == 0 {
+		for _, stack := range env.Stacks {
+			shouldDeploy[stack.Name] = true
+		}
+	} else {
+		for _, stack := range stacksToDeploy {
+			shouldDeploy[stack] = true
+		}
+	}
+
 	// Create stacks
 	stackInfoList := []*model.StackInfo{}
 	for _, stackDep := range stackDeps {
-		deployList := make([]*model.StackConfig, len(stackDep))
-		waitList := make([]string, len(stackDep))
-		for i, stack := range stackDep {
-			params := ps.GetParams(stack.Parameters)
+		deployList := []*model.StackConfig{}
+		waitList := []string{}
+		for _, stack := range stackDep {
+			if shouldDeploy[stack.Name] {
+				params := ps.GetParams(stack.Parameters)
 
-			// Upsert stack
-			stackInfo, createUpErr := s.upsertStack(ctx, env, enclave, envName, stack, params, noUpdate, dryRun)
-			if createUpErr != nil {
-				return nil, createUpErr
+				// Upsert stack
+				stackInfo, createUpErr := s.upsertStack(ctx, env, enclave, envName, stack, params, noUpdate, dryRun)
+				if createUpErr != nil {
+					return nil, createUpErr
+				}
+
+				stackInfoList = append(stackInfoList, stackInfo)
+				waitList = append(waitList, stackInfo.Name)
+				deployList = append(deployList, stack)
 			}
-
-			stackInfoList = append(stackInfoList, stackInfo)
-			waitList[i] = stackInfo.Name
-			deployList[i] = stack
 		}
 
 		// Wait for completion
