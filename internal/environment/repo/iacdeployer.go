@@ -7,14 +7,7 @@ import (
 	"github.com/swizzleio/swiz/internal/environment/model"
 )
 
-const (
-	IacProvDummy = "DUMMY"
-	IacProvAws   = "AWS"
-	IacTypeDummy = "Dummy"
-	IacTypeCf    = "Cloudformation"
-)
-
-const defaultIacType = IacTypeCf
+const defaultIacType = model.IacTypeCf
 
 type IacDeployer interface {
 	CreateStack(ctx context.Context, name string, template string, params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error)
@@ -66,9 +59,9 @@ func (f IacRepoFactory) GetDeployer(enclave model.Enclave, providerName string, 
 
 	if f.iacMap[mapping] == nil {
 		switch iacType {
-		case IacTypeCf:
+		case model.IacTypeCf:
 			f.iacMap[mapping] = NewCloudFormationRepo(f.config, enclave, provider)
-		case IacTypeDummy:
+		case model.IacTypeDummy:
 			f.iacMap[mapping] = NewDummyDeployRepo(f.config, enclave, provider)
 		default:
 			return nil, apperr.NewNotFoundError("iac type", iacType)

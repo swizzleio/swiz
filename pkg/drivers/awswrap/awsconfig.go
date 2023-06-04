@@ -64,7 +64,7 @@ func GetAllOrgAccounts() ([]AwsConfig, error) {
 	orgSvc := organizations.NewFromConfig(cfg)
 	resp, err := orgSvc.ListAccounts(context.Background(), &organizations.ListAccountsInput{})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	retVal := make([]AwsConfig, len(resp.Accounts))

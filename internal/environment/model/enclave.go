@@ -2,6 +2,13 @@ package model
 
 import "github.com/swizzleio/swiz/pkg/drivers/awswrap"
 
+const (
+	EncProvDummy = "DUMMY"
+	EncProvAws   = "AWS"
+	IacTypeDummy = "Dummy"
+	IacTypeCf    = "Cloudformation"
+)
+
 type EnvBehavior struct {
 	NoUpdateDeploy  *bool `yaml:"no_update_deploy"`
 	NoOrphanDelete  *bool `yaml:"no_orphan_delete"`
@@ -44,5 +51,32 @@ func (e EncProvider) ToAwsConfig() awswrap.AwsConfig {
 		Profile:   e.Name,
 		AccountId: e.AccountId,
 		Region:    e.Region,
+	}
+}
+
+func GenerateEnclave(config awswrap.AwsConfig, domainName string, params map[string]string) Enclave {
+	deployAllStacks := true
+	providerName := config.Profile
+	if providerName == "" {
+		providerName = config.Name
+	}
+
+	return Enclave{
+		Name:            "",
+		DefaultProvider: config.Profile,
+		DefaultIac:      IacTypeCf,
+		Providers: []EncProvider{
+			{
+				Name:       providerName,
+				AccountId:  config.AccountId,
+				Region:     config.Region,
+				ProviderId: EncProvAws,
+			},
+		},
+		EnvBehavior: EnvBehavior{
+			DeployAllStacks: &deployAllStacks,
+		},
+		DomainName: domainName,
+		Parameters: params,
 	}
 }

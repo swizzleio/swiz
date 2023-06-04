@@ -295,7 +295,7 @@ func (s EnvService) getEnvEnclave(enclaveName string, envDef string) (*model.Env
 func (s EnvService) generateStackName(env *model.EnvironmentConfig, envName string, stackName string) string {
 	template := env.NamingScheme
 	if env.NamingScheme == "" {
-		template = "{{env_name:32}}-{{stack_name:32}}"
+		template = model.DefaultNamingScheme
 	}
 
 	return preprocessor.ParseTemplateTokens(template, map[string]string{

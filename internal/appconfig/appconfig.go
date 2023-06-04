@@ -2,15 +2,16 @@ package appconfig
 
 import (
 	"encoding/base64"
-	"github.com/swizzleio/swiz/internal/environment/model"
+	"fmt"
 	"github.com/swizzleio/swiz/pkg/configutil"
-	"github.com/swizzleio/swiz/pkg/drivers/awswrap"
 	"github.com/swizzleio/swiz/pkg/fileutil"
 	"github.com/swizzleio/swiz/pkg/security"
 	"gopkg.in/yaml.v3"
 )
 
-var DefaultLocation = "file://~/.swiz/appconfig.yaml"
+var DefaultFileName = "app-config.yaml"
+var DefaultLocation = fmt.Sprintf("file://~/.swiz/%v", DefaultFileName)
+var DefaultOutLocation = "file://./out"
 
 var ProviderIds = []string{"aws"}
 
@@ -60,26 +61,17 @@ func Parse(location string) (*AppConfig, error) {
 	return &cfg, nil
 }
 
-func Generate(enclave model.Enclave, env EnvDef) error {
-	err := fileutil.CreateDirIfNotExist(DefaultLocation)
-	if err != nil {
-		return err
-	}
-
+func Generate(env EnvDef) AppConfig {
 	// Set defaults if not set
-	enclave.Name = configutil.SetOrDefault[string](enclave.Name, awswrap.DefaultAccountName)
-
 	env.Name = configutil.SetOrDefault[string](env.Name, "default")
 
 	// Save app config to yaml
-	cfg := AppConfig{
+	return AppConfig{
 		Version:          1,
 		DefaultEnv:       env.Name,
 		EnvDefinition:    []EnvDef{env},
 		DisabledCommands: []string{},
 	}
-
-	return fileutil.YamlToLocation(DefaultLocation, cfg)
 }
 
 func Fetch(data string) error {

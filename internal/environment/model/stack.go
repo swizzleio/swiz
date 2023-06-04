@@ -23,3 +23,14 @@ type StackInfo struct {
 	DeployStatus DeployStatus
 	Resources    []string
 }
+
+func GenerateStackConfig(name string, templateFile string) StackConfig {
+	return StackConfig{
+		Version:      1,
+		Name:         name,
+		RawName:      name,
+		Order:        1,
+		Parameters:   map[string]string{},
+		TemplateFile: templateFile,
+	}
+}

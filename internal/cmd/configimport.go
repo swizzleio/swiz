@@ -19,11 +19,14 @@ func init() {
 }
 
 func configImportCmd(ctx *cli.Context) error {
+	const sigMatchErr = "signature does not match, let your security team know"
+
 	qs := []*survey.Question{
 		{
 			Name:      "appConfig",
 			Prompt:    &survey.Input{Message: "Paste the app config here"},
 			Transform: survey.TransformString(strings.TrimSpace),
+			Validate:  survey.Required,
 		},
 		{
 			Name:      "signature",
@@ -37,15 +40,9 @@ func configImportCmd(ctx *cli.Context) error {
 		Signature string
 	}{}
 
-	const sigMatchErr = "signature does not match, let your security team know"
-
 	err := survey.Ask(qs, &answers)
 	if err != nil {
 		return err
-	}
-
-	if answers.AppConfig == "" {
-		return fmt.Errorf("missing app config")
 	}
 
 	sig, wordList := security.GetSha256AndWordList(answers.AppConfig)
