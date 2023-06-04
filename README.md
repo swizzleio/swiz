@@ -39,6 +39,7 @@ features.
 * [Testify](https://pkg.go.dev/github.com/stretchr/testify) for testing.
 * [Urfave CLI V2](https://cli.urfave.org/v2/getting-started/) as the CLI library.
 * [YAML](https://pkg.go.dev/gopkg.in/yaml.v3) for parsing YAML files.
+* [go-survey](https://github.com/go-survey/survey) for prompting the user for input.
 
 ## Building
 

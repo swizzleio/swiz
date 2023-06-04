@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-func GetPathFromUrl(location string) (string, error) {
+func GetPathFromUrl(location string, preserveFilename bool) (string, error) {
 	// Determine the protocol
 	u, err := url.Parse(location)
 	if err != nil {
@@ -19,11 +19,21 @@ func GetPathFromUrl(location string) (string, error) {
 
 	switch u.Scheme {
 	case "file":
-		dir, _ := filepath.Split(u.Path)
-		return path.Join(u.Host, dir), nil
+		dir := u.Path
+		if !preserveFilename {
+			dir, _ = filepath.Split(u.Path)
+		}
+
+		var homePath string
+		homePath, err = expandUserPath(u.Host)
+		if err != nil {
+			return "", err
+		}
+
+		return path.Join(homePath, dir), nil
 	}
 
-	return "", nil
+	return "", fmt.Errorf("unsupported protocol: %s", u.Scheme)
 }
 
 func OpenUrl(location string) ([]byte, error) {
@@ -44,7 +54,7 @@ func OpenUrlWithBaseDir(baseDir string, location string) ([]byte, error) {
 
 	switch u.Scheme {
 	case "file":
-		return fileGet(path.Join(u.Host, u.Path))
+		return fileGet(fullLocation)
 	case "http":
 		return httpGet(fullLocation)
 	}
@@ -72,15 +82,20 @@ func WriteUrl(location string, data []byte) error {
 }
 
 func WriteUrlWithBaseDir(baseDir string, location string, data []byte) error {
+	fullLocation, err := UrlWithBaseDir(baseDir, location)
+	if err != nil {
+		return err
+	}
+
 	// Determine the protocol
-	u, err := url.Parse(location)
+	u, err := url.Parse(fullLocation)
 	if err != nil {
 		return err
 	}
 
 	switch u.Scheme {
 	case "file":
-		return fileSave(path.Join(path.Join(baseDir, u.Host), u.Path), data)
+		return fileSave(fullLocation, data)
 	}
 
 	return fmt.Errorf("unsupported protocol: %s", u.Scheme)
@@ -96,8 +111,23 @@ func GetScheme(location string) (string, error) {
 	return u.Scheme, nil
 }
 
-func httpGet(location string) ([]byte, error) {
+func expandUserPath(filePath string) (string, error) {
+	if filePath == "" || filePath[0] != '~' {
+		return filePath, nil
+	}
 
+	var homeDir string
+	if homeDir = os.Getenv("HOME"); homeDir == "" {
+		homeDir = os.Getenv("USERPROFILE") // For Windows
+		if homeDir == "" {
+			return "", fmt.Errorf("user home directory not found")
+		}
+	}
+
+	return filepath.Join(homeDir, filePath[1:]), nil
+}
+
+func httpGet(location string) ([]byte, error) {
 	// Send HTTP GET request to the file URL
 	response, err := http.Get(location)
 	if err != nil {
@@ -110,8 +140,13 @@ func httpGet(location string) ([]byte, error) {
 }
 
 func fileGet(location string) ([]byte, error) {
+	fullPath, err := GetPathFromUrl(location, true)
+	if err != nil {
+		return nil, err
+	}
+
 	// Open a file for reading
-	file, err := os.Open(location)
+	file, err := os.Open(fullPath)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +158,13 @@ func fileGet(location string) ([]byte, error) {
 }
 
 func fileSave(location string, data []byte) error {
+	fullPath, err := GetPathFromUrl(location, true)
+	if err != nil {
+		return err
+	}
+
 	// Open a file for writing
-	file, err := os.Create(location)
+	file, err := os.Create(fullPath)
 	if err != nil {
 		return err
 	}

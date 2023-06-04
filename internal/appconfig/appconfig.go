@@ -52,7 +52,7 @@ func Parse(location string) (*AppConfig, error) {
 		return nil, err
 	}
 
-	cfg.BaseDir, err = fileutil.GetPathFromUrl(location)
+	cfg.BaseDir, err = fileutil.GetPathFromUrl(location, false)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,6 @@ func Fetch(data string) error {
 		return err
 	}
 
-	// TODO, in the command line, verify signature
 	return fileutil.WriteUrl(DefaultLocation, b64[:n])
 }
 
