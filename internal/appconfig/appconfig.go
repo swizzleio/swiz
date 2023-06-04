@@ -25,7 +25,7 @@ type AppConfig struct {
 	DefaultEnv       string   `yaml:"default_env"`
 	EnvDefinition    []EnvDef `yaml:"env_def"`
 	DisabledCommands []string `yaml:"disabled_commands"`
-	BaseDir          string
+	BaseDir          string   `yaml:"-"`
 }
 
 type Base64Resp struct {

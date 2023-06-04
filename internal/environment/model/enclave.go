@@ -10,10 +10,10 @@ const (
 )
 
 type EnvBehavior struct {
-	NoUpdateDeploy  *bool `yaml:"no_update_deploy"`
-	NoOrphanDelete  *bool `yaml:"no_orphan_delete"`
-	DeployAllStacks *bool `yaml:"deploy_all_stacks"`
-	FastDelete      *bool `yaml:"fast_delete"`
+	NoUpdateDeploy  *bool `yaml:"no_update_deploy,omitempty"`
+	NoOrphanDelete  *bool `yaml:"no_orphan_delete,omitempty"`
+	DeployAllStacks *bool `yaml:"deploy_all_stacks,omitempty"`
+	FastDelete      *bool `yaml:"fast_delete,omitempty"`
 }
 
 type EncProvider struct {
@@ -63,7 +63,7 @@ func GenerateEnclave(config awswrap.AwsConfig, domainName string, params map[str
 
 	return Enclave{
 		Name:            "",
-		DefaultProvider: config.Profile,
+		DefaultProvider: providerName,
 		DefaultIac:      IacTypeCf,
 		Providers: []EncProvider{
 			{

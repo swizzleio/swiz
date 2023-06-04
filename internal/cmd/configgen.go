@@ -58,7 +58,7 @@ func configGenCmd(ctx *cli.Context) error {
 	}
 
 	// Parse stacks
-	stacks, stackErr := getStacks()
+	stacks, stackErr := getStacks(paramMap)
 	if stackErr != nil {
 		return stackErr
 	}
@@ -142,7 +142,7 @@ func getEnclaves(cfg *coreConfig, awsAccts []awswrap.AwsConfig, paramMap map[str
 	return enclaves, enclaveNames, nil
 }
 
-func getStacks() ([]model.StackConfig, error) {
+func getStacks(params map[string]string) ([]model.StackConfig, error) {
 	stacks := []model.StackConfig{}
 	for {
 		templateFile := ""
@@ -172,7 +172,7 @@ func getStacks() ([]model.StackConfig, error) {
 			return nil, sErr
 		}
 
-		stacks = append(stacks, model.GenerateStackConfig(stackName, templateFile))
+		stacks = append(stacks, model.GenerateStackConfig(stackName, templateFile, params))
 	}
 	return stacks, nil
 }
