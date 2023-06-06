@@ -20,6 +20,167 @@ An environment comprises multiple stacks and can serve as a product in productio
 
 TODO:
 
+## Config File Format
+
+The behavior of swiz is defined by a set of configuration files. The file location definition currently supports:
+* file:// - A local file
+* http:// - A remote file
+
+Additional support such as `s3://` and `git://` is planned.
+
+#### app-config.yaml
+
+The `app-config.yaml` file defines the main configuration for the application. This can be shared with other developers
+using the `config export` command. This exports a base64 value that can be brought in using the `config import` command.
+
+As part of the export and import, both a hash and word list are generated. The hash is used to verify that the config
+has not been tampered with. Either can be used to verify the integrity of the config. Word lists are easier to verify
+by humans.
+
+```yaml
+---
+version: 1
+default_env: SleepySleep
+env_def:
+  - name: SleepySleep
+    env_def_file: file://env-def.yaml
+disabled_commands: [version, config.generate]
+```
+
+Top Level Config:
+
+| Field             | Description                                                                                    | Example                    |
+|-------------------|------------------------------------------------------------------------------------------------|----------------------------|
+| version           | Version of the configuration                                                                   | 1                          |
+| default_env       | The name of the environment that should be used as the default                                 | SleepySleep                |
+| disabled_commands | This is a list of commands that are disabled. This can be used to limit commands for usability | [version, config.generate] |
+
+Environment Definitions (env_def). There can be multiple environment definitions:
+
+| Field        | Description                                                     | Example             |
+|--------------|-----------------------------------------------------------------|---------------------|
+| name         | The name of the environment                                     | SleepySleep         |
+| env_def_file | A URI to the file that contains further environment definitions | file://env-def.yaml |
+
+#### env-def.yaml
+
+The `env-def.yaml` file defines the environment. This file is specific to each environment and can be checked into
+source control. Ideally a DevOps, Infrastructure, and/or security team owns this file to ensure that non-functional
+requirements are met before a new stack is introduced into the environment.
+
+```yaml
+---
+version: 1
+default_enclave: dev
+naming_scheme: "{{env_name:32}}-{{stack_name:32}}"
+enclave_def:
+  - name: dev
+    default_provider: swiz-test
+    default_iac: "Cloudformation"
+    env_behavior:
+      no_orphan_delete: true
+      deploy_all_stacks: true
+    providers:
+      - name: swiz-test # Currently only a single provider is supported per enclave definition
+        provider_id: AWS
+        account_id: 123456789012
+        region: us-east-1
+    domain_name: example.com
+    params:
+      LogLevel: DEBUG
+      VpcId: vpc-0123456789abcdef0
+      DomainName: example.com
+stack_cfg:
+  - name: swizboot
+    config_file: file://bootstrapstack-cfg.yaml
+    order: 1
+  - name: swizsleep
+    config_file: file://sleepstack-cfg.yaml
+    order: 2
+```
+
+Top-Level Config:
+
+| Field           | Description                                       | Example                             |
+|-----------------|---------------------------------------------------|-------------------------------------|
+| version         | Version of the configuration                      | 1                                   |
+| default_enclave | The name of the enclave to be used as the default | dev                                 |
+| naming_scheme   | A format string for naming created resources      | "{{env_name:32}}-{{stack_name:32}}" |
+
+For the naming_scheme, the following variables are available:
+* env_name - The name of the environment
+* stack_name - The name of the stack
+
+The `:32` at the end allows you to truncate the names to a maximum of 32 characters. This is useful to avoid max
+resource name limits.
+
+Enclave Definitions (enclave_def):
+
+| Field                          | Description                                                                      | Example          |
+|--------------------------------|----------------------------------------------------------------------------------|------------------|
+| name                           | The name of the enclave                                                          | dev              |
+| default_provider               | The default provider to use for this enclave                                     | swiz-test        |
+| default_iac                    | The default Infrastructure as Code (IaC) technology to use                       | "Cloudformation" |
+| env_behavior.no_update_deploy  | This can optionally override the `deploy --no-update-deploy` parameter           | null             |
+| env_behavior.no_orphan_delete  | This can optionally override the `delete --no-orphan-delete` parameter           | true             |
+| env_behavior.deploy_all_stacks | This can optionally override the `deploy --deploy-all` parameter                 | true             |
+| env_behavior.fast_delete       | This can optionally override the `delete --fast-delete` parameter                | null             |
+| providers                      | A list of cloud providers (currently only one provider is supported per enclave) | -                |
+| domain_name                    | The default domain name to use for resources in this enclave                     | example.com      |
+| params                         | A set of default parameters to use when deploying resources                      | -                |
+
+Provider Details (providers):
+
+| Field       | Description                                       | Example      |
+|-------------|---------------------------------------------------|--------------|
+| name        | The name of the cloud provider                    | swiz-test    |
+| provider_id | The ID that identifies the cloud provider         | AWS          |
+| account_id  | The account ID for the cloud provider             | 123456789012 |
+| region      | The region where the resources should be deployed | us-east-1    |
+
+Parameters (params):
+
+Each params field is a key value pair that gets passed down to each stack. This allows you to specify different values
+per enclave (i.e. a dev enclave defaults to DEBUG logging, while a prod enclave defaults to INFO logging).
+
+Stack Configuration (stack_cfg):
+
+| Field       | Description                                                                                                                                                                         | Example                                                    |
+|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| name        | The name of the stack                                                                                                                                                               | swizboot, swizsleep                                        |
+| config_file | A URI to the configuration file for this stack                                                                                                                                      | file://bootstrapstack-cfg.yaml, file://sleepstack-cfg.yaml |
+| order       | An integer specifying the order in which the stacks should be deployed. Lower numbers get deployed first. If multiple stacks have the same value, they will be deployed in parallel | 1, 2                                                       |
+
+#### sleepstack-cfg.yaml
+
+```yaml
+---
+version: 1
+template_file: file://sleepstack.yaml
+params:
+  SleepTestTime: 10
+  SleepTestFunctionArn: "{{swizboot.SleepTestFunctionArn}}"
+  LogLevel: "{{LogLevel}}"
+  VpcId: "{{VpcId}}"
+```
+
+The naming convention is typically `<stack_name>-cfg.yaml`. This file is specific to each stack and can be checked into
+source control. This file is used to specify the parameters for the stack.
+
+Top-Level Configuration
+
+| Field         | Description                                                             | Example                |
+|---------------|-------------------------------------------------------------------------|------------------------|
+| version       | Version of the configuration                                            | 1                      |
+| template_file | A URI to the YAML file that is the CloudFormation (or similar) template | file://sleepstack.yaml |
+
+Parameters (params):
+
+Each params field is a key value pair that gets passed down to the CloudFormation template. This allows you to specify
+explicit values or pull in global parameters defined per enclave. For example the `LogLevel` parameter defined in the
+enclave will be passed to this stack. To pull in an output parameter, in this case the `SleepTestFunctionArn` from the
+`swizboot` stack, you can use the `{{stack_name.output_name}}` syntax.
+
 ## 🦄 Best Practices (or How to Swizzle)
 
 Since top 10's are all the rage ~~for clickbait~~, here's a list of the top 10 best practices for using Swizzle. There
