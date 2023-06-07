@@ -1,0 +1,27 @@
+version: 1
+default_enclave: dev
+naming_scheme: "{{env_name:32}}-{{stack_name:32}}"
+enclave_def:
+  - name: dev
+    default_provider: swiz-test
+    default_iac: "Cloudformation"
+    env_behavior:
+      no_orphan_delete: true
+      deploy_all_stacks: true
+    providers:
+      - name: swiz-test # Currently only a single provider is supported per enclave definition
+        provider_id: AWS
+        account_id: 123456789012
+        region: us-east-1
+    domain_name: example.com
+    params:
+      LogLevel: DEBUG
+      VpcId: vpc-0123456789abcdef0
+      DomainName: example.com
+stack_cfg:
+  - name: swizboot
+    config_file: file://bootstrapstack-cfg.yaml
+    order: 1
+  - name: swizsleep
+    config_file: file://sleepstack-cfg.yaml
+    order: 2
