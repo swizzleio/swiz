@@ -28,7 +28,7 @@ type StackInfo struct {
 
 func GenerateStackConfig(name string, templateFile string, params map[string]string) StackConfig {
 	defaultParams := map[string]string{}
-	for k, _ := range params {
+	for k := range params {
 		defaultParams[k] = fmt.Sprintf("{{%v}}", k)
 	}
 

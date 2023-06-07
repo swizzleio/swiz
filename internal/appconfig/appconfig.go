@@ -13,8 +13,6 @@ var DefaultFileName = "app-config.yaml"
 var DefaultLocation = fmt.Sprintf("file://~/.swiz/%v", DefaultFileName)
 var DefaultOutLocation = "file://./out"
 
-var ProviderIds = []string{"aws"}
-
 type EnvDef struct {
 	Name       string `yaml:"name"`
 	EnvDefFile string `yaml:"env_def_file"`

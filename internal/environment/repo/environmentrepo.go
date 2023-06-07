@@ -58,7 +58,7 @@ func (r *EnvironmentRepo) GetEnvironmentByDef(envDef string) (*model.Environment
 		for _, stackCfg := range envCfg.StackCfgDef {
 			stack, err := fileutil.YamlFromLocationWithBaseDir[model.StackConfig](r.baseDir, stackCfg.ConfigFile)
 			if err != nil {
-				// TODO: Check if error is due to handlebars incomptability
+				// TODO: Check if error is due to handlebars incompatibility
 				// Unlike environment, a stack error is fatal
 				return nil, err
 			}

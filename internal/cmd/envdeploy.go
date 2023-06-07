@@ -47,7 +47,7 @@ func init() {
 			},
 			&cli.BoolFlag{
 				Name:  "no-update-deploy",
-				Usage: "Fail if a stack or environment already exists. Can be overriden in config",
+				Usage: "Fail if a stack or environment already exists. Can be overridden in config",
 			},
 		},
 	})
@@ -64,8 +64,8 @@ func envCreateCmd(ctx *cli.Context) error {
 
 	stackList := []string{}
 	for _, stack := range stacks {
-		commaSeperate := strings.Split(stack, ",")
-		stackList = append(stackList, commaSeperate...)
+		commaSeperated := strings.Split(stack, ",")
+		stackList = append(stackList, commaSeperated...)
 	}
 
 	svc, err := environment.NewEnvService(appConfig)

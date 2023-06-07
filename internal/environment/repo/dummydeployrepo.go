@@ -226,7 +226,7 @@ func (r *DummyDeployRepo) ListEnvironments(ctx context.Context) ([]string, error
 	fmt.Printf("ListEnvironments in enclave %v\n", r.enclave.Name)
 
 	envList := []string{}
-	for k, _ := range r.envs {
+	for k := range r.envs {
 		envList = append(envList, k)
 	}
 

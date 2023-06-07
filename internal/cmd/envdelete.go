@@ -36,7 +36,7 @@ func init() {
 			},
 			&cli.BoolFlag{
 				Name:  "no-orphan-delete",
-				Usage: "Do not attempt to delete orphan stacks. Can be overriden in config",
+				Usage: "Do not attempt to delete orphan stacks. Can be overridden in config",
 			},
 			&cli.BoolFlag{
 				Name:  "fast-delete",

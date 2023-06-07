@@ -8,6 +8,8 @@ import (
 	"github.com/swizzleio/swiz/pkg/drivers/awswrap"
 	"github.com/swizzleio/swiz/pkg/fileutil"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"path/filepath"
 	"strings"
 )
@@ -32,7 +34,7 @@ func convertToCamelCase(s string) string {
 
 	// Convert subsequent words to title case
 	for i := 1; i < len(words); i++ {
-		words[i] = strings.Title(words[i])
+		words[i] = cases.Title(language.Und, cases.NoLower).String(words[i])
 	}
 
 	// Join the words together

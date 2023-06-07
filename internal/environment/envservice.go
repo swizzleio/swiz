@@ -20,7 +20,7 @@ type EnvService struct {
 }
 
 const (
-	POLL_INTERVAL_SEC = 5
+	PollIntervalSec = 5
 )
 
 func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
@@ -352,7 +352,7 @@ func (s EnvService) waitForStacksComplete(ctx context.Context, enclave *model.En
 		stackList = newStackList
 
 		if !stopPoll {
-			time.Sleep(POLL_INTERVAL_SEC * time.Second)
+			time.Sleep(PollIntervalSec * time.Second)
 		}
 	}
 	return nil
@@ -372,7 +372,7 @@ func (s EnvService) buildDependencyOrder(stacks map[string]*model.StackConfig, r
 	}
 
 	// Iterate through the stacks and determine the order. Note, 0 is a valid number.
-	// Yes this could be more efficent but it's not worth it
+	// Yes this could be more efficient but it's not worth it
 	retVal := make([][]*model.StackConfig, maxSize+1)
 	for _, stack := range stacks {
 		if retVal[stack.Order] == nil {

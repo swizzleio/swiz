@@ -12,7 +12,6 @@ import (
 )
 
 var DefaultAccountName = "dev"
-var DefaultRegion = "us-east-1"
 
 type AwsConfig struct {
 	Name      string

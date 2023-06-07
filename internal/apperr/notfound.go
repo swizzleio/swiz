@@ -16,9 +16,9 @@ func NewNotFoundError(subject string, noun string) *NotFoundErr {
 	}
 }
 
-func (m NotFoundErr) Error() string {
+func (e *NotFoundErr) Error() string {
 
-	return fmt.Sprintf("%v %v not found", m.Subject, m.Noun)
+	return fmt.Sprintf("%v %v not found", e.Subject, e.Noun)
 }
 
 func (e *NotFoundErr) Is(tgt error) bool {

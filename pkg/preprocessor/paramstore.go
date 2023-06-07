@@ -18,11 +18,11 @@ func NewParamStore(params map[string]string) *ParamStore {
 	}
 }
 
-func (s ParamStore) GetParam(paramName string) string {
+func (s *ParamStore) GetParam(paramName string) string {
 	return s.params[CleanTemplateParam(paramName)]
 }
 
-func (s ParamStore) GetParams(paramNames map[string]string) map[string]string {
+func (s *ParamStore) GetParams(paramNames map[string]string) map[string]string {
 	params := map[string]string{}
 	for k, v := range paramNames {
 		if IsTemplateReplaceParam(v) {

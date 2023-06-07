@@ -16,9 +16,9 @@ func NewExistsError(subject string, noun string) *NotFoundErr {
 	}
 }
 
-func (m ExistsErr) Error() string {
+func (e *ExistsErr) Error() string {
 
-	return fmt.Sprintf("%v %v already exists", m.Subject, m.Noun)
+	return fmt.Sprintf("%v %v already exists", e.Subject, e.Noun)
 }
 
 func (e *ExistsErr) Is(tgt error) bool {
