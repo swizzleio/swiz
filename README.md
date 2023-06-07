@@ -2,6 +2,8 @@
 
 Swiz allows you to orchestrate multiple infrastructure-as-code (IaC) environments. 
 
+![overview](docs/images/overview.png)
+
 ## 🤔 Understanding Swizzle
 
 Distributed architectures often encounter a common problem: deploy time dependencies can arise. For instance, a shared 
@@ -20,11 +22,11 @@ An environment comprises multiple stacks and can serve as a product in productio
 
 TODO:
 
-## Config File Format
+## 🗂️ Config File Format
 
 The behavior of swiz is defined by a set of configuration files. The file location definition currently supports:
-* file:// - A local file
-* http:// - A remote file
+* `file://` - A local file
+* `https://` - A remote file
 
 Additional support such as `s3://` and `git://` is planned.
 

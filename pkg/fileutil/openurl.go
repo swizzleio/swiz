@@ -55,7 +55,7 @@ func OpenUrlWithBaseDir(baseDir string, location string) ([]byte, error) {
 	switch u.Scheme {
 	case "file":
 		return fileGet(fullLocation)
-	case "http":
+	case "https":
 		return httpGet(fullLocation)
 	}
 
