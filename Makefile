@@ -38,6 +38,11 @@ depupdate:
 deptree:
 	goda tree $(PROJECT_LOC)/...:all
 
+## lint: Lint the project
+.PHONY: lint
+lint:
+	golangci-lint run
+
 ## clean: clean all dependencies
 .PHONY: clean
 clean:
