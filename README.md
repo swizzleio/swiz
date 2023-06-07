@@ -20,7 +20,24 @@ An environment comprises multiple stacks and can serve as a product in productio
 
 ## 🚀 Getting Started
 
-TODO:
+At this time, installation from source is required. Once a build pipeline is set up, this will be installable via a
+package manager or `go install`.
+
+Currently, the only supported IaC technology is CloudFormation. However, the architecture is designed to support
+multiple IaC technologies and cloud providers.
+
+1. Download the source code from this repo.
+2. Run either `make build-cli` or `go build -o swiz ./cmd/`
+3. Run `./swiz` to see the available commands.
+4. Run `./swiz config generate` to generate a sample config file. You will be prompted with a set of interactive
+   questions. The answers will be used to generate the config files. Information on customizing the config files is
+   detailed in this readme.
+5. Copy the `./out/app-config.yaml` file to `~/.swiz/app-config.yaml`. You can share this config with others by doing
+   a `config export` and sharing the base64 value along with the signature. The config can be imported using the 
+   `config import` command.
+6. Deploy your environment using the `swiz env deploy --name AwesomeEnv`
+7. Alternatively, you can deploy a test environment using the `swiz --appconfig file://test/data/cloudformation/app-config.yaml env deploy --name AwesomeEnv`
+   command.
 
 ## 🗂️ Config File Format
 
