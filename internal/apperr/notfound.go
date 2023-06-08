@@ -23,10 +23,7 @@ func (e *NotFoundErr) Error() string {
 
 func (e *NotFoundErr) Is(tgt error) bool {
 	_, ok := tgt.(*NotFoundErr)
-	if !ok {
-		return false
-	}
-	return true
+	return ok
 }
 
 var GenNotFoundError *NotFoundErr = &NotFoundErr{}

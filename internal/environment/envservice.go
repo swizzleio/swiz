@@ -58,7 +58,7 @@ func (s EnvService) DeployEnvironment(ctx context.Context, enclaveName string, e
 	stackDeps := s.buildDependencyOrder(env.Stacks, false)
 
 	// Determine stacks to deploy
-	if !deployAll && (stacksToDeploy == nil || len(stacksToDeploy) == 0) {
+	if !deployAll && len(stacksToDeploy) == 0 {
 		return nil, fmt.Errorf("specify a list of stacks to deploy or provide a flag to deploy all stacks")
 	}
 
@@ -130,13 +130,12 @@ func (s EnvService) DeleteEnvironment(ctx context.Context, enclaveName string, e
 
 	// Determine flag behavior
 	noOrphanDelete = configutil.FlagOrConfig(noOrphanDelete, enclave.EnvBehavior.NoOrphanDelete)
-	fastDelete = configutil.FlagOrConfig(noOrphanDelete, enclave.EnvBehavior.FastDelete)
+	fastDelete = configutil.FlagOrConfig(fastDelete, enclave.EnvBehavior.FastDelete)
 
 	// Determine dependency order
 	stackDeps := s.buildDependencyOrder(env.Stacks, true)
 
 	// Delete stacks
-	stackInfoList := []*model.StackInfo{}
 	stackDeleted := map[string]bool{}
 	for _, stackDep := range stackDeps {
 		waitList := make([]string, len(stackDep))
@@ -153,7 +152,6 @@ func (s EnvService) DeleteEnvironment(ctx context.Context, enclaveName string, e
 				return nil, deleteErr
 			}
 
-			stackInfoList = append(stackInfoList, stackInfo)
 			waitList[i] = stackInfo.Name
 			stackDeleted[stack.Name] = true
 		}
@@ -194,7 +192,6 @@ func (s EnvService) DeleteEnvironment(ctx context.Context, enclaveName string, e
 					return nil, deleteErr
 				}
 
-				stackInfoList = append(stackInfoList, stackInfo)
 				waitList = append(waitList, stackInfo.Name)
 			}
 		}
@@ -344,7 +341,7 @@ func (s EnvService) waitForStacksComplete(ctx context.Context, enclave *model.En
 		// Filter stackCompleteList
 		newStackList := []string{}
 		for _, v := range stackList {
-			if toRemove[v] == false {
+			if !toRemove[v] {
 				newStackList = append(newStackList, v)
 			}
 		}
