@@ -9,8 +9,8 @@ type ExistsErr struct {
 	Noun    string
 }
 
-func NewExistsError(subject string, noun string) *NotFoundErr {
-	return &NotFoundErr{
+func NewExistsError(subject string, noun string) *ExistsErr {
+	return &ExistsErr{
 		Subject: subject,
 		Noun:    noun,
 	}
@@ -22,11 +22,11 @@ func (e *ExistsErr) Error() string {
 }
 
 func (e *ExistsErr) Is(tgt error) bool {
-	_, ok := tgt.(*NotFoundErr)
+	_, ok := tgt.(*ExistsErr)
 	if !ok {
 		return false
 	}
 	return true
 }
 
-var GenExistsError *ExistsErr = &ExistsErr{}
+var GenExistsError = &ExistsErr{}

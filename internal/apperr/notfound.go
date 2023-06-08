@@ -29,4 +29,4 @@ func (e *NotFoundErr) Is(tgt error) bool {
 	return true
 }
 
-var GenNotFoundError *NotFoundErr = &NotFoundErr{}
+var GenNotFoundError = &NotFoundErr{}
