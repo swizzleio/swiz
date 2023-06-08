@@ -23,10 +23,7 @@ func (e *ExistsErr) Error() string {
 
 func (e *ExistsErr) Is(tgt error) bool {
 	_, ok := tgt.(*NotFoundErr)
-	if !ok {
-		return false
-	}
-	return true
+	return ok
 }
 
 var GenExistsError *ExistsErr = &ExistsErr{}
