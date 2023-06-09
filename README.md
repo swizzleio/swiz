@@ -266,6 +266,7 @@ If you want to say thanks and help support active development of Swizzle, you ca
 * [Urfave CLI V2](https://cli.urfave.org/v2/getting-started/) as the CLI library.
 * [YAML](https://pkg.go.dev/gopkg.in/yaml.v3) for parsing YAML files.
 * [go-survey](https://github.com/go-survey/survey) for prompting the user for input.
+* [afero](https://github.com/spf13/afero) for abstracting the file system so that the code can be tested.
 
 ### 🛠️ Building
 
