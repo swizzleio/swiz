@@ -14,14 +14,30 @@ import (
 var DefaultAccountName = "dev"
 
 type AwsConfig struct {
-	Name      string
+	//Name string
 	Profile   string
 	AccountId string
 	Region    string
 	Endpoint  string
 }
 
-func GetDefaultConfig() (*AwsConfig, error) {
+type AwsConfigManager interface {
+	GetDefaultConfig() (*AwsConfig, error)
+	GetAllOrgAccounts() ([]AwsConfig, error)
+}
+
+type AwsConfiger interface {
+	GenerateConfig() aws.Config
+}
+
+type AwsConfigManage struct {
+}
+
+func NewAwsConfigManage() AwsConfigManager {
+	return &AwsConfigManage{}
+}
+
+func (c AwsConfigManage) GetDefaultConfig() (*AwsConfig, error) {
 	// Load AWS SDK configuration
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
@@ -46,13 +62,13 @@ func GetDefaultConfig() (*AwsConfig, error) {
 	}
 
 	return &AwsConfig{
-		Name:      accountName,
+		Profile:   accountName,
 		AccountId: *resp.Account,
 		Region:    cfg.Region,
 	}, nil
 }
 
-func GetAllOrgAccounts() ([]AwsConfig, error) {
+func (c AwsConfigManage) GetAllOrgAccounts() ([]AwsConfig, error) {
 	// Load AWS SDK configuration
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
@@ -70,7 +86,7 @@ func GetAllOrgAccounts() ([]AwsConfig, error) {
 	for _, acct := range resp.Accounts {
 
 		retVal = append(retVal, AwsConfig{
-			Name:      *acct.Name,
+			Profile:   *acct.Name,
 			AccountId: *acct.Id,
 			Region:    cfg.Region,
 		})
@@ -79,7 +95,15 @@ func GetAllOrgAccounts() ([]AwsConfig, error) {
 	return retVal, nil
 }
 
-// GenerateConfig generates an AWS config
+func NewAwsConfig(name, accountId, region string) AwsConfiger {
+	return &AwsConfig{
+		Profile:   name,
+		AccountId: accountId,
+		Region:    region,
+	}
+}
+
+// GenerateConfig generates an AWS specific config
 func (a AwsConfig) GenerateConfig() aws.Config {
 	// Initialize a session that the SDK will use to load
 	// credentials from the shared credentials file ~/.aws/credentials

@@ -15,11 +15,11 @@ func init() {
 }
 
 func configExportCmd(ctx *cli.Context) error {
-	if appConfig == nil {
+	if !appConfigMgr.IsLoaded() {
 		return fmt.Errorf("missing app config")
 	}
 
-	out, err := appConfig.GetBase64()
+	out, err := appConfigMgr.GetBase64()
 	if err != nil {
 		return err
 	}

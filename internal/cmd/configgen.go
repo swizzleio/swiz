@@ -41,6 +41,16 @@ func convertToCamelCase(s string) string {
 	return strings.Join(words, "")
 }
 
+func writeYaml[T any](location string, err error, data T) error {
+	if err != nil {
+		return err
+	}
+	ser := fileutil.NewYamlHelper[T]()
+	err = ser.Set(data).Save(location)
+
+	return err
+}
+
 func configGenCmd(ctx *cli.Context) error {
 	// Parse AWS accounts
 	awsAccts, err := getAwsConfig()
@@ -80,28 +90,20 @@ func configGenCmd(ctx *cli.Context) error {
 	envCfg := model.GenerateEnvironmentConfig(stacks, enclaves, defaultEnclave)
 
 	fmt.Printf("Exporting files to %v\n", appconfig.DefaultOutLocation)
-	fErr := fileutil.CreateDirIfNotExist(appconfig.DefaultOutLocation)
+	fh := fileutil.NewFileHelper()
+
+	fErr := fh.CreateDirIfNotExist(appconfig.DefaultOutLocation)
 	if fErr != nil {
 		return fErr
 	}
 
-	fErr = fileutil.YamlToLocation(fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, appconfig.DefaultFileName), cfg.AppConfig)
-	if fErr != nil {
-		return fErr
-	}
-	fErr = fileutil.YamlToLocation(fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName), envCfg)
-	if fErr != nil {
-		return fErr
-	}
-
+	serErr := writeYaml[appconfig.AppConfig](fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, appconfig.DefaultFileName), nil, *cfg.AppConfig)
+	serErr = writeYaml[model.EnvironmentConfig](fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName), serErr, envCfg)
 	for _, stack := range stacks {
-		fErr = fileutil.YamlToLocation(model.GenerateFileName(stack.Name), stack)
-		if fErr != nil {
-			return fErr
-		}
+		serErr = writeYaml[model.StackConfig](model.GenerateFileName(stack.Name), serErr, stack)
 	}
 
-	return nil
+	return serErr
 }
 
 func getDefaultEnclave(enclaveNames []string) (string, error) {
@@ -127,7 +129,7 @@ func getEnclaves(cfg *coreConfig, awsAccts []awswrap.AwsConfig, paramMap map[str
 
 		pv := ""
 		prompt := &survey.Input{
-			Message: fmt.Sprintf("Name the enclave that AWS account %v will be part of (leave blank to ignore)", acct.Name),
+			Message: fmt.Sprintf("Name the enclave that AWS account %v will be part of (leave blank to ignore)", acct.Profile),
 		}
 		if sErr := survey.AskOne(prompt, &pv); sErr != nil {
 			return nil, nil, sErr
@@ -199,7 +201,7 @@ type coreConfig struct {
 	EnvName      string
 	GlobalParams string
 	DomainName   string
-	AppConfig    appconfig.AppConfig
+	AppConfig    *appconfig.AppConfig
 }
 
 func getCoreConfig() (*coreConfig, error) {
@@ -229,7 +231,7 @@ func getCoreConfig() (*coreConfig, error) {
 		return nil, err
 	}
 
-	answers.AppConfig = appconfig.Generate(appconfig.EnvDef{
+	answers.AppConfig = appConfigMgr.GenFromEnv(appconfig.EnvDef{
 		Name:       answers.EnvName,
 		EnvDefFile: fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName),
 	})
@@ -239,10 +241,11 @@ func getCoreConfig() (*coreConfig, error) {
 
 func getAwsConfig() ([]awswrap.AwsConfig, error) {
 	fmt.Printf("Scanning for AWS accounts...\n")
-	awsAccts, aErr := awswrap.GetAllOrgAccounts()
+	awsCfg := awswrap.NewAwsConfigManage()
+	awsAccts, aErr := awsCfg.GetAllOrgAccounts()
 	if aErr != nil {
 		// Get the default account
-		awsAcct, aErr := awswrap.GetDefaultConfig()
+		awsAcct, aErr := awsCfg.GetDefaultConfig()
 		if aErr == nil {
 			awsAccts = append(awsAccts, *awsAcct)
 		}

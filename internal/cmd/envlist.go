@@ -27,7 +27,7 @@ func envListCmd(ctx *cli.Context) error {
 	enclave := ctx.String("enclave")
 	envDef := ctx.String("env-def")
 
-	svc, err := environment.NewEnvService(appConfig)
+	svc, err := environment.NewEnvService(appConfigMgr.Get())
 	if err != nil {
 		return err
 	}

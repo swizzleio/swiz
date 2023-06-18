@@ -15,7 +15,7 @@ var (
 )
 
 // App config
-var appConfig *appconfig.AppConfig
+var appConfigMgr = appconfig.NewManage()
 
 // Internal list of commands
 var commands = []*cli.Command{}

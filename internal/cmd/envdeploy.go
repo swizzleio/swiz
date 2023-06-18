@@ -68,7 +68,7 @@ func envCreateCmd(ctx *cli.Context) error {
 		stackList = append(stackList, commaSeperated...)
 	}
 
-	svc, err := environment.NewEnvService(appConfig)
+	svc, err := environment.NewEnvService(appConfigMgr.Get())
 	if err != nil {
 		return err
 	}

@@ -46,28 +46,20 @@ func (e Enclave) GetProvider(providerName string) *EncProvider {
 	return nil
 }
 
-func (e EncProvider) ToAwsConfig() awswrap.AwsConfig {
-	return awswrap.AwsConfig{
-		Profile:   e.Name,
-		AccountId: e.AccountId,
-		Region:    e.Region,
-	}
+func (e EncProvider) ToAwsConfig() awswrap.AwsConfiger {
+	return awswrap.NewAwsConfig(e.Name, e.AccountId, e.Region)
 }
 
 func GenerateEnclave(config awswrap.AwsConfig, domainName string, params map[string]string) Enclave {
 	deployAllStacks := true
-	providerName := config.Profile
-	if providerName == "" {
-		providerName = config.Name
-	}
 
 	return Enclave{
 		Name:            "",
-		DefaultProvider: providerName,
+		DefaultProvider: config.Profile,
 		DefaultIac:      IacTypeCf,
 		Providers: []EncProvider{
 			{
-				Name:       providerName,
+				Name:       config.Profile,
 				AccountId:  config.AccountId,
 				Region:     config.Region,
 				ProviderId: EncProvAws,

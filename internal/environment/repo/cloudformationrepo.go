@@ -19,14 +19,16 @@ import (
 const CfPollTimeSec = 5
 
 type CloudFormationRepo struct {
-	client *cloudformation.Client
+	client  *cloudformation.Client
+	openUrl fileutil.FileUrlHelper
 }
 
 func NewCloudFormationRepo(config appconfig.AppConfig, enclave model.Enclave, provider *model.EncProvider) IacDeployer {
 	cfg := provider.ToAwsConfig()
 
 	return &CloudFormationRepo{
-		client: cloudformation.NewFromConfig(cfg.GenerateConfig()),
+		client:  cloudformation.NewFromConfig(cfg.GenerateConfig()),
+		openUrl: fileutil.NewFileUrlHelper(),
 	}
 }
 
@@ -421,14 +423,14 @@ func (r *CloudFormationRepo) IsEnvironmentInState(ctx context.Context, envName s
 }
 
 func (r *CloudFormationRepo) templateOrUrl(template string) (templateBody *string, templateUrl *string, err error) {
-	scheme, err := fileutil.GetScheme(template)
+	scheme, err := r.openUrl.GetScheme(template)
 	if err != nil {
 		return
 	}
 
 	if scheme == "file" {
 		var b []byte
-		b, err = fileutil.OpenUrl(template)
+		b, err = r.openUrl.OpenUrl(template)
 		if err != nil {
 			return
 		}

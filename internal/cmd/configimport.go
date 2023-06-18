@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/pkg/security"
 	"github.com/urfave/cli/v2"
 	"strings"
@@ -67,5 +66,5 @@ func configImportCmd(ctx *cli.Context) error {
 		return fmt.Errorf(sigMatchErr)
 	}
 
-	return appconfig.Fetch(answers.AppConfig)
+	return appConfigMgr.GenFromB64(answers.AppConfig, true)
 }
