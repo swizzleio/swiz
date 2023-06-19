@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-//go:generate mockery --name FileUrlHelper --filename openurl_mock.go
+//go:generate mockery --name FileUrlHelper --filename openurl_mock.go --output ../../mocks/pkg/fileutil --outpkg mockfileutil
 type FileUrlHelper interface {
 	GetPathFromUrl(location string, preserveFilename bool) (string, error)
 	GetScheme(location string) (string, error)

@@ -256,6 +256,12 @@ If you want to say thanks and help support active development of Swizzle, you ca
 * [IaC concepts](https://en.wikipedia.org/wiki/Infrastructure_as_code) since that's core to what's being built.
 * [Git](https://git-scm.com/book/en/v2) is used for source control.
 
+#### Tools
+* [Golang](https://golang.org/doc/) is the language used.
+* [make](https://www.gnu.org/software/make/manual/make.html) is used for building and testing.
+* [golangci-lint](https://golangci-lint.run/) is used for linting.
+* [Mockery](https://vektra.github.io/mockery/installation/) is used for generating mocks.
+
 #### Libraries used
 * [AWS SDK for go](https://aws.github.io/aws-sdk-go-v2/docs/) for talking to AWS. Services used are:
   * [Cloudformation](https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/cloudformation)
