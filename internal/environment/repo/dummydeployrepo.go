@@ -44,7 +44,6 @@ func (r *DummyDeployRepo) outputParams(params map[string]string) string {
 func (r *DummyDeployRepo) CreateStack(ctx context.Context, name string, template string,
 	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
 	r.cl.Info("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, r.enclave.Name)
-	r.cl.Info(r.outputParams(params))
 	r.cl.Info("Metadata:\n%v\n", r.outputParams(metadata))
 
 	/*
@@ -132,7 +131,6 @@ func (r *DummyDeployRepo) DeleteStack(ctx context.Context, name string, dryRun b
 func (r *DummyDeployRepo) UpdateStack(ctx context.Context, name string, template string,
 	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
 	r.cl.Info("UpdateStack: %v with template %v in enclave %v. Params: \n", name, template, r.enclave.Name)
-	r.cl.Info(r.outputParams(params))
 	r.cl.Info("Metadata:\n%v\n", r.outputParams(metadata))
 
 	return &model.StackInfo{
