@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	appcli "github.com/swizzleio/swiz/pkg/cli"
 	"strconv"
 	"time"
 
@@ -20,6 +21,7 @@ type DummyDeployRepo struct {
 	envs    map[string]*model.EnvironmentInfo
 	stacks  map[string]*DummyStack
 	enclave model.Enclave
+	cl      appcli.SwizClier
 }
 
 func NewDummyDeployRepo(config appconfig.AppConfig, enclave model.Enclave, provider *model.EncProvider) IacDeployer {
@@ -27,6 +29,7 @@ func NewDummyDeployRepo(config appconfig.AppConfig, enclave model.Enclave, provi
 		envs:    map[string]*model.EnvironmentInfo{},
 		stacks:  map[string]*DummyStack{},
 		enclave: enclave,
+		cl:      appcli.NewCli(nil, nil),
 	}
 }
 
@@ -40,9 +43,9 @@ func (r *DummyDeployRepo) outputParams(params map[string]string) string {
 
 func (r *DummyDeployRepo) CreateStack(ctx context.Context, name string, template string,
 	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
-	fmt.Printf("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, r.enclave.Name)
-	fmt.Printf(r.outputParams(params))
-	fmt.Printf("Metadata:\n%v\n", r.outputParams(metadata))
+	r.cl.Info("CreateStack: %v with template %v in enclave %v. Params:\n", name, template, r.enclave.Name)
+	r.cl.Info(r.outputParams(params))
+	r.cl.Info("Metadata:\n%v\n", r.outputParams(metadata))
 
 	/*
 		cfYaml, err := fileutil.YamlFromLocation[map[string]interface{}](template)
@@ -111,7 +114,7 @@ func (r *DummyDeployRepo) CreateStack(ctx context.Context, name string, template
 }
 
 func (r *DummyDeployRepo) DeleteStack(ctx context.Context, name string, dryRun bool) (*model.StackInfo, error) {
-	fmt.Printf("DeleteStack: %v in enclave %v\n", name, r.enclave.Name)
+	r.cl.Info("DeleteStack: %v in enclave %v\n", name, r.enclave.Name)
 
 	return &model.StackInfo{
 		Name: name,
@@ -128,9 +131,9 @@ func (r *DummyDeployRepo) DeleteStack(ctx context.Context, name string, dryRun b
 
 func (r *DummyDeployRepo) UpdateStack(ctx context.Context, name string, template string,
 	params map[string]string, metadata map[string]string, dryRun bool) (*model.StackInfo, error) {
-	fmt.Printf("UpdateStack: %v with template %v in enclave %v. Params: \n", name, template, r.enclave.Name)
-	fmt.Printf(r.outputParams(params))
-	fmt.Printf("Metadata:\n%v\n", r.outputParams(metadata))
+	r.cl.Info("UpdateStack: %v with template %v in enclave %v. Params: \n", name, template, r.enclave.Name)
+	r.cl.Info(r.outputParams(params))
+	r.cl.Info("Metadata:\n%v\n", r.outputParams(metadata))
 
 	return &model.StackInfo{
 		Name: name,
@@ -146,7 +149,7 @@ func (r *DummyDeployRepo) UpdateStack(ctx context.Context, name string, template
 }
 
 func (r *DummyDeployRepo) GetStackInfo(ctx context.Context, name string) (*model.StackInfo, error) {
-	fmt.Printf("GetStackInfo: %v in enclave %v\n", name, r.enclave.Name)
+	r.cl.Info("GetStackInfo: %v in enclave %v\n", name, r.enclave.Name)
 
 	if r.stacks[name] == nil {
 		return nil, apperr.NewNotFoundError("stack", name)
@@ -168,7 +171,7 @@ func (r *DummyDeployRepo) GetStackInfo(ctx context.Context, name string) (*model
 }
 
 func (r *DummyDeployRepo) GetStackOutputs(ctx context.Context, name string) (map[string]string, error) {
-	fmt.Printf("GetStackOutputs: %v in enclave %v\n", name, r.enclave.Name)
+	r.cl.Info("GetStackOutputs: %v in enclave %v\n", name, r.enclave.Name)
 
 	if r.stacks[name] == nil {
 		return nil, apperr.NewNotFoundError("stack", name)
@@ -181,7 +184,7 @@ func (r *DummyDeployRepo) GetStackOutputs(ctx context.Context, name string) (map
 }
 
 func (r *DummyDeployRepo) ListStacks(ctx context.Context, envName string) ([]model.StackInfo, error) {
-	fmt.Printf("ListStacks: %v in enclave %v\n", envName, r.enclave.Name)
+	r.cl.Info("ListStacks: %v in enclave %v\n", envName, r.enclave.Name)
 
 	stacks := []model.StackInfo{
 		{
@@ -223,7 +226,7 @@ func (r *DummyDeployRepo) ListStacks(ctx context.Context, envName string) ([]mod
 }
 
 func (r *DummyDeployRepo) ListEnvironments(ctx context.Context) ([]string, error) {
-	fmt.Printf("ListEnvironments in enclave %v\n", r.enclave.Name)
+	r.cl.Info("ListEnvironments in enclave %v\n", r.enclave.Name)
 
 	envList := []string{}
 	for k := range r.envs {
@@ -239,7 +242,7 @@ func (r *DummyDeployRepo) ListEnvironments(ctx context.Context) ([]string, error
 }
 
 func (r *DummyDeployRepo) GetEnvironment(ctx context.Context, envName string) (*model.EnvironmentInfo, error) {
-	fmt.Printf("GetEnvironment: %v in enclave %v\n", envName, r.enclave.Name)
+	r.cl.Info("GetEnvironment: %v in enclave %v\n", envName, r.enclave.Name)
 
 	env := r.envs[envName]
 

@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/urfave/cli/v2"
 )
 
@@ -15,7 +13,7 @@ func init() {
 }
 
 func versionCmd(ctx *cli.Context) error {
-	fmt.Printf("Version is %v(%v)\n", Version, CommitHash)
+	cl.Info("Version is %v(%v)\n", Version, CommitHash)
 
 	return nil
 }

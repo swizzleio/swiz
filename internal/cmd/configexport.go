@@ -24,11 +24,11 @@ func configExportCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("This output can be used to share the app config with developers. The signature and word list are\n")
-	fmt.Printf("used to verify the integrity of the app config and crytographically the same.\n\n")
-	fmt.Printf("App config: %v\n", out.Encoded)
-	fmt.Printf("Signature: %v\n", out.Signature)
-	fmt.Printf("Word list: %v\n", out.WordList)
+	cl.Info("This output can be used to share the app config with developers. The signature and word list are\n")
+	cl.Info("used to verify the integrity of the app config and crytographically the same.\n\n")
+	cl.Info("App config: %v\n", out.Encoded)
+	cl.Info("Signature: %v\n", out.Signature)
+	cl.Info("Word list: %v\n", out.WordList)
 
 	return nil
 }

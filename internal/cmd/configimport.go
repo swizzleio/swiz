@@ -2,10 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
+	appcli "github.com/swizzleio/swiz/pkg/cli"
 	"github.com/swizzleio/swiz/pkg/security"
 	"github.com/urfave/cli/v2"
-	"strings"
 )
 
 func init() {
@@ -20,43 +19,34 @@ func init() {
 func configImportCmd(ctx *cli.Context) error {
 	const sigMatchErr = "signature does not match, let your security team know"
 
-	qs := []*survey.Question{
+	prompts := []appcli.AskManyOpts{
 		{
-			Name:      "appConfig",
-			Prompt:    &survey.Input{Message: "Paste the app config here"},
-			Transform: survey.TransformString(strings.TrimSpace),
-			Validate:  survey.Required,
+			Key:           "AppConfig",
+			Message:       "Paste the app config here",
+			Required:      true,
+			TransformMode: appcli.TransformModeTrimSpace,
 		},
 		{
-			Name:      "signature",
-			Prompt:    &survey.Input{Message: "Paste the signature here"},
-			Transform: survey.TransformString(strings.TrimSpace),
+			Key:           "Signature",
+			Message:       "Paste the signature here",
+			TransformMode: appcli.TransformModeTrimSpace,
 		},
 	}
 
-	answers := struct {
-		AppConfig string
-		Signature string
-	}{}
-
-	err := survey.Ask(qs, &answers)
+	answers, err := cl.AskMany(prompts)
 	if err != nil {
 		return err
 	}
 
-	sig, wordList := security.GetSha256AndWordList(answers.AppConfig)
-	matches := sig == answers.Signature
-	if answers.Signature == "" {
+	sig, wordList := security.GetSha256AndWordList(answers["AppConfig"])
+	matches := sig == answers["Signature"]
+	if answers["Signature"] == "" {
 		// If the signature was not provided, ask the user
-		fmt.Printf("\nVerify one or the other matches the signature provided with the app config\n")
-		fmt.Printf("Signature: %v\n", sig)
-		fmt.Printf("Word list: %v\n", wordList)
+		cl.Info("\nVerify one or the other matches the signature provided with the app config\n")
+		cl.Info("Signature: %v\n", sig)
+		cl.Info("Word list: %v\n", wordList)
 
-		prompt := &survey.Confirm{
-			Message: "Does one or the other match?",
-		}
-
-		err = survey.AskOne(prompt, &matches)
+		matches, err = cl.AskConfirm("Does one or the other match?")
 		if err != nil {
 			return err
 		}
@@ -66,5 +56,5 @@ func configImportCmd(ctx *cli.Context) error {
 		return fmt.Errorf(sigMatchErr)
 	}
 
-	return appConfigMgr.GenFromB64(answers.AppConfig, true)
+	return appConfigMgr.GenFromB64(answers["AppConfig"], true)
 }

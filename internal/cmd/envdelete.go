@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/swizzleio/swiz/internal/environment"
 	"github.com/urfave/cli/v2"
 )
@@ -65,7 +64,7 @@ func envDeleteCmd(ctx *cli.Context) error {
 	}
 
 	for _, stack := range stackInfo {
-		fmt.Printf("Stack: %v [%v] - %v\n", stack.Name, stack.DeployStatus.State, stack.NextAction)
+		cl.Info("Stack: %v [%v] - %v\n", stack.Name, stack.DeployStatus.State, stack.NextAction)
 	}
 
 	return nil
