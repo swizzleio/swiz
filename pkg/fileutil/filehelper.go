@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+//go:generate mockery --name FileHelper --filename filehelper_mock.go --output ../../mocks/pkg/fileutil --outpkg mockfileutil
 type FileHelper interface {
 	CreateDirIfNotExist(location string) error
 }
