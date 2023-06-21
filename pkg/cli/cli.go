@@ -36,8 +36,10 @@ type AskManyOpts struct {
 type SwizClier interface {
 	Info(format string, i ...interface{})
 	Infoln(i ...interface{})
-	Ask(prompt string) (string, error)
+	Ask(prompt string, required bool) (string, error)
+	AskAutocomplete(prompt string, required bool, complete func(toComplete string) []string) (string, error)
 	AskConfirm(prompt string) (bool, error)
+	AskOptions(prompt string, options []string) (string, error)
 	AskMany(prompts []AskManyOpts) (map[string]string, error)
 }
 
@@ -61,13 +63,24 @@ func (l *SwizCli) Infoln(i ...interface{}) {
 }
 
 // Ask asks a question
-func (l *SwizCli) Ask(prompt string) (string, error) {
+func (l *SwizCli) Ask(prompt string, required bool) (string, error) {
+	return l.AskAutocomplete(prompt, required, nil)
+}
+
+// AskAutocomplete asks a question with autocomplete
+func (l *SwizCli) AskAutocomplete(prompt string, required bool, complete func(toComplete string) []string) (string, error) {
 	var resp string
 	question := &survey.Input{
 		Message: prompt,
+		Suggest: complete,
 	}
 
-	err := survey.AskOne(question, &resp)
+	var err error
+	if required {
+		err = survey.AskOne(question, &resp, survey.WithValidator(survey.Required))
+	} else {
+		err = survey.AskOne(question, &resp)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -90,8 +103,25 @@ func (l *SwizCli) AskConfirm(prompt string) (bool, error) {
 	return resp, nil
 }
 
+// AskOptions asks with a list of options
+func (l *SwizCli) AskOptions(prompt string, options []string) (string, error) {
+	var resp string
+	question := &survey.Select{
+		Message: prompt,
+		Options: options,
+	}
+
+	err := survey.AskOne(question, &resp)
+	if err != nil {
+		return "", err
+	}
+
+	return resp, nil
+}
+
 // AskMany asks many questions
 func (l *SwizCli) AskMany(prompts []AskManyOpts) (map[string]string, error) {
+	// TODO: Update the other Ask* calls to use this or an internal method
 	answers := map[string]interface{}{}
 	qs := []*survey.Question{}
 	strAnswers := map[string]string{}
