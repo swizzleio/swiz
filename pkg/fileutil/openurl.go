@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
 //go:generate mockery --name FileUrlHelper --filename openurl_mock.go --output ../../mocks/pkg/fileutil --outpkg mockfileutil
@@ -77,6 +78,11 @@ func (f FileUrlHelp) OpenUrlWithBaseDir(baseDir string, location string) ([]byte
 	switch u.Scheme {
 	case "file":
 		return f.fileGet(fullLocation)
+	case "http":
+		if strings.HasPrefix(u.Host, "127.0.0.1") {
+			// Only fetch from http if this is a loopback
+			return f.httpGet(fullLocation)
+		}
 	case "https":
 		return f.httpGet(fullLocation)
 	}
