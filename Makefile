@@ -28,6 +28,11 @@ build-cli:
 unittest:
 	go test -v ./...
 
+## gen: Run go generate
+.PHONY: gen
+gen:
+	go generate ./...
+
 ## depupdate: Update dependencies
 .PHONY: depupdate
 depupdate:
