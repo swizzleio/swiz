@@ -3,6 +3,7 @@ package fileutil
 
 import (
 	"encoding/base64"
+	"errors"
 	"github.com/swizzleio/swiz/pkg/security"
 	"gopkg.in/yaml.v3"
 )
@@ -41,7 +42,6 @@ type Base64Resp struct {
 type YamlHelp[T any] struct {
 	Yaml T             // The YAML data
 	f    FileUrlHelper // Helper for file URLs
-	fh   FileHelper    // Helper for files
 }
 
 // NewYamlHelper creates a new instance of YamlHelper with default settings.
@@ -82,7 +82,7 @@ func (y YamlHelp[T]) Save(location string) error {
 // SaveWithBaseDir writes the YAML data to the specified location, using a base directory.
 func (y YamlHelp[T]) SaveWithBaseDir(baseDir string, location string) error {
 	// Marshal T into YAML
-	out, err := yaml.Marshal(y.Yaml)
+	out, err := y.marshalHelper(y.Yaml)
 	if err != nil {
 		return err
 	}
@@ -97,10 +97,10 @@ func (y YamlHelp[T]) SaveWithBaseDir(baseDir string, location string) error {
 }
 
 // Set sets the YAML data of the YamlHelper.
-func (y YamlHelp[T]) Set(data T) SerializeHelper[T] {
+func (y *YamlHelp[T]) Set(data T) SerializeHelper[T] {
 	y.Yaml = data
 
-	return &y
+	return y
 }
 
 // SetFromB64 parses the YAML data from the specified base64 encoded string.
@@ -124,7 +124,7 @@ func (y YamlHelp[T]) Get() T {
 // GetBase64 returns the YAML data stored in the YamlHelper as a base64 encoded string.
 func (y YamlHelp[T]) GetBase64() (*Base64Resp, error) {
 	// Marshal YAML
-	out, err := yaml.Marshal(y.Yaml)
+	out, err := y.marshalHelper(y.Yaml)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (y YamlHelp[T]) ParseBase64(data string) error {
 func (y YamlHelp[T]) GetSignature() (sig string, wordList string, err error) {
 	// Marshal YAML
 	var out []byte
-	out, err = yaml.Marshal(y.Yaml)
+	out, err = y.marshalHelper(y.Yaml)
 	if err != nil {
 		return
 	}
@@ -169,4 +169,17 @@ func (y YamlHelp[T]) GetSignature() (sig string, wordList string, err error) {
 	sig, wordList = security.GetSha256AndWordList(string(out))
 
 	return
+}
+
+func (y YamlHelp[T]) marshalHelper(in interface{}) ([]byte, error) {
+	out, err := yaml.Marshal(y.Yaml)
+	if err != nil {
+		return nil, err
+	}
+
+	if string(out) == "null\n" {
+		return nil, errors.New("invalid yaml")
+	}
+
+	return out, err
 }
