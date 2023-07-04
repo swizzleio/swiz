@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-//go:generate mockery --name FileUrlHelper --filename openurl_mock.go --output ../../mocks/pkg/fileutil --outpkg mockfileutil
+//go:generate mockery --name FileUrlHelper --filename fileurlhelper_mock.go --output ../../mocks/pkg/fileutil --outpkg mockfileutil
 type FileUrlHelper interface {
 	GetPathFromUrl(location string, preserveFilename bool) (string, error)
 	GetScheme(location string) (string, error)
