@@ -211,7 +211,11 @@ func getCoreConfig() (*coreConfig, error) {
 
 func getAwsConfig() ([]awswrap.AwsConfig, error) {
 	cl.Info("Scanning for AWS accounts...\n")
-	awsCfg := awswrap.NewAwsConfigManage()
+	awsCfg, err := awswrap.NewAwsConfigManage()
+	if err != nil {
+		return nil, err
+	}
+
 	awsAccts, aErr := awsCfg.GetAllOrgAccounts()
 	if aErr != nil {
 		// Get the default account
