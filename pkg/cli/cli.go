@@ -16,6 +16,7 @@ type SwizCli struct {
 	input  io.Reader
 	err    io.Writer
 	reader *bufio.Reader
+	survey SurveyWrapper
 }
 
 const (
@@ -49,6 +50,7 @@ func NewCli(o io.Writer, i io.Reader) SwizClier {
 		output: o,
 		input:  i,
 		err:    o,
+		survey: &SurveyWrap{},
 	}
 }
 
@@ -77,9 +79,9 @@ func (l *SwizCli) AskAutocomplete(prompt string, required bool, complete func(to
 
 	var err error
 	if required {
-		err = survey.AskOne(question, &resp, survey.WithValidator(survey.Required))
+		err = l.survey.AskOne(question, &resp, survey.WithValidator(survey.Required))
 	} else {
-		err = survey.AskOne(question, &resp)
+		err = l.survey.AskOne(question, &resp)
 	}
 	if err != nil {
 		return "", err
@@ -95,7 +97,7 @@ func (l *SwizCli) AskConfirm(prompt string) (bool, error) {
 		Message: prompt,
 	}
 
-	err := survey.AskOne(question, &resp)
+	err := l.survey.AskOne(question, &resp)
 	if err != nil {
 		return false, err
 	}
@@ -111,7 +113,7 @@ func (l *SwizCli) AskOptions(prompt string, options []string) (string, error) {
 		Options: options,
 	}
 
-	err := survey.AskOne(question, &resp)
+	err := l.survey.AskOne(question, &resp)
 	if err != nil {
 		return "", err
 	}
@@ -147,7 +149,7 @@ func (l *SwizCli) AskMany(prompts []AskManyOpts) (map[string]string, error) {
 		qs = append(qs, q)
 	}
 
-	err := survey.Ask(qs, &answers)
+	err := l.survey.Ask(qs, &answers)
 	if err != nil {
 		return nil, err
 	}

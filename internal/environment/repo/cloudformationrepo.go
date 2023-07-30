@@ -18,6 +18,8 @@ import (
 
 const CfPollTimeSec = 5
 
+// See mocking: https://aws.github.io/aws-sdk-go-v2/docs/unit-testing/
+
 type CloudFormationRepo struct {
 	client  *cloudformation.Client
 	openUrl fileutil.FileUrlHelper
