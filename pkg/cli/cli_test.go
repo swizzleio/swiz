@@ -3,33 +3,39 @@ package appcli
 import (
 	"bufio"
 	"bytes"
-	"github.com/stretchr/testify/assert"
-	mocksurvey "github.com/swizzleio/swiz/mocks/pkg/cli"
+	"fmt"
 	"io"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	mocksurvey "github.com/swizzleio/swiz/mocks/pkg/cli"
 )
 
-func getMocks(inputs []string) (mockWrite *bytes.Buffer, mockErr *bytes.Buffer, l *SwizCli) {
+func getMocks(inputs []string) (mockWrite *bytes.Buffer, mockErr *bytes.Buffer,
+	mockSurvey *mocksurvey.SurveyWrapper, l *SwizCli) {
 	mockWrite = bytes.NewBufferString("")
 	if inputs == nil {
 		inputs = []string{}
 	}
 	mockRead := strings.NewReader(strings.Join(inputs, "\n") + "\n")
 	mockErr = bytes.NewBufferString("")
+	mockSurvey = &mocksurvey.SurveyWrapper{}
 
 	l = &SwizCli{
 		output: mockWrite,
 		input:  mockRead,
 		err:    mockErr,
-		survey: &mocksurvey.SurveyWrapper{},
+		survey: mockSurvey,
 	}
 	return
 }
 
 func TestSwizCli_Info(t *testing.T) {
-	writeStr, _, l := getMocks(nil)
+	writeStr, _, _, l := getMocks(nil)
 
 	l.Info("All your base are belong to us %v %v", 42, "foo")
 
@@ -37,7 +43,7 @@ func TestSwizCli_Info(t *testing.T) {
 }
 
 func TestSwizCli_Infoln(t *testing.T) {
-	writeStr, _, l := getMocks(nil)
+	writeStr, _, _, l := getMocks(nil)
 
 	l.Infoln("All your base are belong to us")
 
@@ -45,161 +51,63 @@ func TestSwizCli_Infoln(t *testing.T) {
 }
 
 func TestSwizCli_Ask(t *testing.T) {
-	type fields struct {
-		output io.Writer
-		input  io.Reader
-		err    io.Writer
-		reader *bufio.Reader
-	}
-	type args struct {
-		prompt   string
-		required bool
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			l := &SwizCli{
-				output: tt.fields.output,
-				input:  tt.fields.input,
-				err:    tt.fields.err,
-				reader: tt.fields.reader,
-			}
-			got, err := l.Ask(tt.args.prompt, tt.args.required)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Ask() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("Ask() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	// TODO
 }
 
 func TestSwizCli_AskAutocomplete(t *testing.T) {
-	type fields struct {
-		output io.Writer
-		input  io.Reader
-		err    io.Writer
-		reader *bufio.Reader
-	}
-	type args struct {
-		prompt   string
-		required bool
-		complete func(toComplete string) []string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			l := &SwizCli{
-				output: tt.fields.output,
-				input:  tt.fields.input,
-				err:    tt.fields.err,
-				reader: tt.fields.reader,
-			}
-			got, err := l.AskAutocomplete(tt.args.prompt, tt.args.required, tt.args.complete)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("AskAutocomplete() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("AskAutocomplete() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	// TODO
 }
 
 func TestSwizCli_AskConfirm(t *testing.T) {
-	type fields struct {
-		output io.Writer
-		input  io.Reader
-		err    io.Writer
-		reader *bufio.Reader
-	}
-	type args struct {
-		prompt string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    bool
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			l := &SwizCli{
-				output: tt.fields.output,
-				input:  tt.fields.input,
-				err:    tt.fields.err,
-				reader: tt.fields.reader,
-			}
-			got, err := l.AskConfirm(tt.args.prompt)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("AskConfirm() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("AskConfirm() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	// TODO
 }
 
 func TestSwizCli_AskOptions(t *testing.T) {
-	type fields struct {
-		output io.Writer
-		input  io.Reader
-		err    io.Writer
-		reader *bufio.Reader
-	}
-	type args struct {
-		prompt  string
-		options []string
-	}
 	tests := []struct {
 		name    string
-		fields  fields
-		args    args
+		argMsg  string
+		argOpt  []string
 		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "happy case",
+			argMsg:  "Hey",
+			argOpt:  []string{"one", "two"},
+			want:    "Sup",
+			wantErr: false,
+		},
+		{
+			name:    "error case",
+			argMsg:  "Hey",
+			argOpt:  []string{"one", "two"},
+			want:    "",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			l := &SwizCli{
-				output: tt.fields.output,
-				input:  tt.fields.input,
-				err:    tt.fields.err,
-				reader: tt.fields.reader,
+			_, _, surv, l := getMocks(nil)
+			question := &survey.Select{
+				Message: tt.argMsg,
+				Options: tt.argOpt,
 			}
-			got, err := l.AskOptions(tt.args.prompt, tt.args.options)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("AskOptions() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			var retErr error
+			if tt.wantErr {
+				retErr = fmt.Errorf("Ahhhhhhh!")
 			}
-			if got != tt.want {
-				t.Errorf("AskOptions() got = %v, want %v", got, tt.want)
+			surv.On("AskOne", question, mock.AnythingOfType("*string")).Run(func(args mock.Arguments) {
+				arg := args.Get(1).(*string)
+				*arg = tt.want
+			}).Return(retErr)
+
+			got, err := l.AskOptions("Hey", []string{"one", "two"})
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -264,59 +172,9 @@ func Test_convertToCamelCase(t *testing.T) {
 }
 
 func TestSwizCli_getOutput(t *testing.T) {
-	type fields struct {
-		output io.Writer
-		input  io.Reader
-		err    io.Writer
-		reader *bufio.Reader
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   io.Writer
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			l := &SwizCli{
-				output: tt.fields.output,
-				input:  tt.fields.input,
-				err:    tt.fields.err,
-				reader: tt.fields.reader,
-			}
-			if got := l.getOutput(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getOutput() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	// TODO
 }
 
 func TestSwizCli_getInput(t *testing.T) {
-	type fields struct {
-		output io.Writer
-		input  io.Reader
-		err    io.Writer
-		reader *bufio.Reader
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   *bufio.Reader
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			l := &SwizCli{
-				output: tt.fields.output,
-				input:  tt.fields.input,
-				err:    tt.fields.err,
-				reader: tt.fields.reader,
-			}
-			if got := l.getInput(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("getInput() = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	// TODO
 }
