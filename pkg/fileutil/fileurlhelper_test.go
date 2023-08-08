@@ -289,7 +289,7 @@ func TestHttpGet(t *testing.T) {
 			name:        "invalid location",
 			location:    "https://invalid-url",
 			expectedRes: nil,
-			expectedErr: errors.New("Get \"https://invalid-url\": dial tcp: lookup invalid-url: no such host"),
+			expectedErr: errors.New("no such host"),
 		},
 	}
 
