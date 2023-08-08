@@ -1,11 +1,9 @@
 package appcli
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
-	"io"
-	"reflect"
+	"os"
 	"strings"
 	"testing"
 
@@ -14,6 +12,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	mocksurvey "github.com/swizzleio/swiz/mocks/pkg/cli"
 )
+
+const mockArgMissing = "(Missing)"
 
 func getMocks(inputs []string) (mockWrite *bytes.Buffer, mockErr *bytes.Buffer,
 	mockSurvey *mocksurvey.SurveyWrapper, l *SwizCli) {
@@ -51,15 +51,153 @@ func TestSwizCli_Infoln(t *testing.T) {
 }
 
 func TestSwizCli_Ask(t *testing.T) {
-	// TODO
+	_, _, surv, l := getMocks(nil)
+	question := &survey.Input{
+		Message: "Heya",
+	}
+
+	surv.On("AskOne", question, mock.AnythingOfType("*string")).Run(func(args mock.Arguments) {
+		arg := args.Get(1).(*string)
+		*arg = "Foobar"
+	}).Return(nil)
+
+	got, err := l.Ask("Heya", false)
+	assert.Equal(t, "Foobar", got)
+	assert.NoError(t, err)
 }
 
 func TestSwizCli_AskAutocomplete(t *testing.T) {
-	// TODO
+	tests := []struct {
+		name        string
+		argPrompt   string
+		argRequired bool
+		argComplete AutocompleteFunc
+		want        string
+		wantErr     bool
+	}{
+		{
+			name:        "required no func",
+			argPrompt:   "Hey",
+			argRequired: true,
+			argComplete: nil,
+			want:        "Sup",
+			wantErr:     false,
+		},
+		{
+			name:        "not required",
+			argPrompt:   "Hey",
+			argRequired: false,
+			argComplete: nil,
+			want:        "Sup",
+			wantErr:     false,
+		},
+		{
+			name:        "required",
+			argPrompt:   "Hey",
+			argRequired: true,
+			argComplete: func(toComplete string) []string { return []string{"hi", "there"} },
+			want:        "Sup",
+			wantErr:     false,
+		},
+		{
+			name:        "error",
+			argPrompt:   "Hey",
+			argRequired: false,
+			argComplete: nil,
+			want:        "",
+			wantErr:     true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, surv, l := getMocks(nil)
+			question := &survey.Input{
+				Message: tt.argPrompt,
+				Suggest: tt.argComplete,
+			}
+			var retErr error
+			if tt.wantErr {
+				retErr = fmt.Errorf("Ahhhhhhh!")
+			}
+			var mockAskOne *mock.Call
+
+			// This is needed because mocks blows up when matching functions
+			questionMatch := mock.MatchedBy(func(arg *survey.Input) bool {
+				msgMatch := arg.Message == tt.argPrompt
+				suggestMatch := true
+				if tt.argComplete != nil {
+					suggestMatch = arg.Suggest != nil
+				}
+
+				return msgMatch && suggestMatch
+			})
+			if tt.argRequired {
+				// Required arg needs an autocomplete function
+				mockAskOne = surv.On("AskOne", questionMatch, mock.AnythingOfType("*string"), mock.AnythingOfType("survey.AskOpt"))
+			} else {
+				mockAskOne = surv.On("AskOne", question, mock.AnythingOfType("*string"))
+			}
+			mockAskOne.Run(func(args mock.Arguments) {
+				arg := args.Get(1).(*string)
+				*arg = tt.want
+			}).Return(retErr)
+
+			got, err := l.AskAutocomplete(tt.argPrompt, tt.argRequired, tt.argComplete)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestSwizCli_AskConfirm(t *testing.T) {
-	// TODO
+	tests := []struct {
+		name    string
+		argMsg  string
+		argOpt  []string
+		want    bool
+		wantErr bool
+	}{
+		{
+			name:    "happy case",
+			argMsg:  "Hey",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "error case",
+			argMsg:  "Hey",
+			want:    false,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, surv, l := getMocks(nil)
+			question := &survey.Confirm{
+				Message: tt.argMsg,
+			}
+			var retErr error
+			if tt.wantErr {
+				retErr = fmt.Errorf("Ahhhhhhh!")
+			}
+			surv.On("AskOne", question, mock.AnythingOfType("*bool")).Run(func(args mock.Arguments) {
+				arg := args.Get(1).(*bool)
+				*arg = tt.want
+			}).Return(retErr)
+
+			got, err := l.AskConfirm(tt.argMsg)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestSwizCli_AskOptions(t *testing.T) {
@@ -101,7 +239,7 @@ func TestSwizCli_AskOptions(t *testing.T) {
 				*arg = tt.want
 			}).Return(retErr)
 
-			got, err := l.AskOptions("Hey", []string{"one", "two"})
+			got, err := l.AskOptions(tt.argMsg, tt.argOpt)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -113,68 +251,44 @@ func TestSwizCli_AskOptions(t *testing.T) {
 }
 
 func TestSwizCli_AskMany(t *testing.T) {
-	type fields struct {
-		output io.Writer
-		input  io.Reader
-		err    io.Writer
-		reader *bufio.Reader
-	}
-	type args struct {
-		prompts []AskManyOpts
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    map[string]string
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			l := &SwizCli{
-				output: tt.fields.output,
-				input:  tt.fields.input,
-				err:    tt.fields.err,
-				reader: tt.fields.reader,
-			}
-			got, err := l.AskMany(tt.args.prompts)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("AskMany() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AskMany() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
+	// TODO
 }
 
 func Test_convertToCamelCase(t *testing.T) {
-	type args struct {
-		s string
-	}
 	tests := []struct {
 		name string
-		args args
 		want string
 	}{
-		// TODO: Add test cases.
+		{
+			name: "normal",
+			want: "normal",
+		},
+		{
+			name: "All Your Base Are Belong To Us",
+			want: "allYourBaseAreBelongToUs",
+		},
+		{
+			name: "Foo-Bar Stuff",
+			want: "foo-barStuff",
+		},
+		{
+			name: "La la la",
+			want: "laLaLa",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := convertToCamelCase(tt.args.s); got != tt.want {
-				t.Errorf("convertToCamelCase() = %v, want %v", got, tt.want)
-			}
+			got := convertToCamelCase(tt.name)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
 func TestSwizCli_getOutput(t *testing.T) {
-	// TODO
-}
-
-func TestSwizCli_getInput(t *testing.T) {
-	// TODO
+	w, _, _, l := getMocks(nil)
+	write := l.getOutput()
+	assert.Equal(t, w, write)
+	l.output = nil
+	write = l.getOutput()
+	assert.Equal(t, os.Stdout, write)
 }

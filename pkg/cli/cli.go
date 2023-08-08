@@ -1,23 +1,24 @@
 package appcli
 
 import (
-	"bufio"
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/AlecAivazis/survey/v2"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type SwizCli struct {
 	output io.Writer
 	input  io.Reader
 	err    io.Writer
-	reader *bufio.Reader
 	survey SurveyWrapper
 }
+
+type AutocompleteFunc func(toComplete string) []string
 
 const (
 	TransformModeNone = iota
@@ -38,7 +39,7 @@ type SwizClier interface {
 	Info(format string, i ...interface{})
 	Infoln(i ...interface{})
 	Ask(prompt string, required bool) (string, error)
-	AskAutocomplete(prompt string, required bool, complete func(toComplete string) []string) (string, error)
+	AskAutocomplete(prompt string, required bool, complete AutocompleteFunc) (string, error)
 	AskConfirm(prompt string) (bool, error)
 	AskOptions(prompt string, options []string) (string, error)
 	AskMany(prompts []AskManyOpts) (map[string]string, error)
@@ -70,7 +71,7 @@ func (l *SwizCli) Ask(prompt string, required bool) (string, error) {
 }
 
 // AskAutocomplete asks a question with autocomplete
-func (l *SwizCli) AskAutocomplete(prompt string, required bool, complete func(toComplete string) []string) (string, error) {
+func (l *SwizCli) AskAutocomplete(prompt string, required bool, complete AutocompleteFunc) (string, error) {
 	var resp string
 	question := &survey.Input{
 		Message: prompt,
@@ -185,20 +186,4 @@ func (l *SwizCli) getOutput() io.Writer {
 	}
 
 	return os.Stdout
-}
-
-// getInput fetches the input reader or if not set, uses stdin
-func (l *SwizCli) getInput() *bufio.Reader {
-	if l.reader != nil {
-		return l.reader
-	}
-
-	input := l.input
-	if input == nil {
-		input = os.Stdin
-	}
-
-	l.reader = bufio.NewReader(input)
-
-	return l.reader
 }
