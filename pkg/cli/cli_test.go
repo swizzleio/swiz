@@ -251,7 +251,110 @@ func TestSwizCli_AskOptions(t *testing.T) {
 }
 
 func TestSwizCli_AskMany(t *testing.T) {
-	// TODO
+	tests := []struct {
+		name    string
+		argOpt  []AskManyOpts
+		want    map[string]string
+		wantErr bool
+	}{
+		{
+			name: "happy case",
+			argOpt: []AskManyOpts{
+				{
+					Key:           "Foo",
+					Message:       "What is foo?",
+					Required:      false,
+					TransformMode: TransformModeNone,
+				},
+				{
+					Key:           "Bar",
+					Message:       "What is love?",
+					Required:      false,
+					TransformMode: TransformModeNone,
+				},
+			},
+			want: map[string]string{
+				"Foo": "What is foo?",
+				"Bar": "What is love?",
+			},
+			wantErr: false,
+		},
+		{
+			name: "mixed case",
+			argOpt: []AskManyOpts{
+				{
+					Key:           "Foo",
+					Message:       "What is foo?",
+					Required:      false,
+					TransformMode: TransformModeNone,
+				},
+				{
+					Key:           "Bar",
+					Message:       "What is love?",
+					Required:      true,
+					TransformMode: TransformModeNone,
+				},
+				{
+					Key:           "Stuff",
+					Message:       "Lots of stuff!",
+					Required:      true,
+					TransformMode: TransformModeTrimSpace,
+				},
+				{
+					Key:           "Blah",
+					Message:       "Waaah",
+					Required:      false,
+					TransformMode: TransformModeCamelCase,
+				},
+			},
+			want: map[string]string{
+				"Foo":   "What is foo?",
+				"Bar":   "What is love?",
+				"Stuff": "Lots of stuff!",
+				"Blah":  "Waaah",
+			},
+			wantErr: false,
+		},
+			{
+				name: "fail case",
+				argOpt: []AskManyOpts{
+					{
+						Key:           "Foo",
+						Message:       "What is foo?",
+						Required:      false,
+						TransformMode: TransformModeNone,
+					},
+				},
+				want:    nil,
+				wantErr: true,
+			},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, surv, l := getMocks(nil)
+
+			var retErr error
+			if tt.wantErr {
+				retErr = fmt.Errorf("Ahhhhhhh!")
+			}
+			surv.On("Ask", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+				arg := args.Get(1).(*map[string]interface{})
+				for _, p := range tt.argOpt {
+					_, ok := (*arg)[p.Key]
+					assert.True(t, ok)
+					(*arg)[p.Key] = p.Message
+				}
+			}).Return(retErr)
+
+			got, err := l.AskMany(tt.argOpt)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func Test_convertToCamelCase(t *testing.T) {
