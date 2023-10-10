@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
@@ -11,26 +14,25 @@ import (
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
+	"github.com/swizzleio/swiz/pkg/drivers/awswrap"
 	"github.com/swizzleio/swiz/pkg/fileutil"
-	"strings"
-	"time"
 )
 
 const CfPollTimeSec = 5
 
-// See mocking: https://aws.github.io/aws-sdk-go-v2/docs/unit-testing/
-
 type CloudFormationRepo struct {
-	client  *cloudformation.Client
-	openUrl fileutil.FileUrlHelper
+	client                     awswrap.Cloudformationer
+	openUrl                    fileutil.FileUrlHelper
+	newDescribeStacksPaginator awswrap.CfDescribeStacksPaginatorNewer
 }
 
 func NewCloudFormationRepo(config appconfig.AppConfig, enclave model.Enclave, provider *model.EncProvider) IacDeployer {
 	cfg := provider.ToAwsConfig()
 
 	return &CloudFormationRepo{
-		client:  cloudformation.NewFromConfig(cfg.GenerateConfig()),
-		openUrl: fileutil.NewFileUrlHelper(),
+		client:                     cloudformation.NewFromConfig(cfg.GenerateConfig()),
+		openUrl:                    fileutil.NewFileUrlHelper(),
+		newDescribeStacksPaginator: cloudformation.NewDescribeStacksPaginator,
 	}
 }
 
@@ -449,7 +451,7 @@ func (r *CloudFormationRepo) templateOrUrl(template string) (templateBody *strin
 func (r *CloudFormationRepo) iterateAllStacks(ctx context.Context,
 	stackFunc func(stack types.Stack, tag types.Tag) (bool, error)) error {
 	describeStacksInput := &cloudformation.DescribeStacksInput{}
-	paginator := cloudformation.NewDescribeStacksPaginator(r.client, describeStacksInput)
+	paginator := r.newDescribeStacksPaginator(r.client, describeStacksInput)
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
