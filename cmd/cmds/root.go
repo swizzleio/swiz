@@ -1,4 +1,4 @@
-package cmd
+package cmds
 
 import (
 	"fmt"
@@ -42,7 +42,7 @@ func addSubCommand(cmdName string, subCmd *cli.Command) {
 }
 
 // Execute adds all child commands to the root command. This is called by main and is considered the main entry point.
-func Execute() {
+func Execute() int {
 
 	appCli = &cli.App{
 		Name:     "swiz",
@@ -69,5 +69,8 @@ func Execute() {
 	err := appCli.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
+		return -1
 	}
+
+	return 0
 }

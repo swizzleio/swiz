@@ -28,6 +28,11 @@ build-cli:
 unittest:
 	go test -v ./... -coverprofile ./out/cover.out
 
+## functionaltest: Run functional tests
+.PHONY: functionaltest
+functionaltest:
+	go test -v --tags="functionaltest" ./test/functional
+
 ## gen: Run go generate
 .PHONY: gen
 gen:

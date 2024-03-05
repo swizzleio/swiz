@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/swizzleio/swiz/internal/cmd"
+	"github.com/swizzleio/swiz/cmd/cmds"
+	"os"
 )
 
 // main is the main entry point
 func main() {
 	// Execute CLI
-	cmd.Execute()
+	os.Exit(cmds.Execute())
 }
