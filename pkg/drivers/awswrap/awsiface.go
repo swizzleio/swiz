@@ -38,10 +38,10 @@ type Cloudformationer interface {
 	cloudformation.DescribeStacksAPIClient
 }
 
-//go:generate mockery --name CfDescribeStacksPaginatorNewer --filename cloudformation_mock.go --output ../../../mocks/ext/aws --outpkg mockaws
+//go:generate mockery --name CfDescribeStacksPaginatorNewer --filename cloudformationpgnew_mock.go --output ../../../mocks/ext/aws --outpkg mockaws
 type CfDescribeStacksPaginatorNewer func(client cloudformation.DescribeStacksAPIClient, params *cloudformation.DescribeStacksInput, optFns ...func(*cloudformation.DescribeStacksPaginatorOptions)) *cloudformation.DescribeStacksPaginator
 
-//go:generate mockery --name CfDescribeStacksPaginator --filename cloudformation_mock.go --output ../../../mocks/ext/aws --outpkg mockaws
+//go:generate mockery --name CfDescribeStacksPaginator --filename cloudformationpg_mock.go --output ../../../mocks/ext/aws --outpkg mockaws
 type CfDescribeStacksPaginator interface {
 	HasMorePages() bool
 	NextPage(ctx context.Context, optFns ...func(*cloudformation.Options)) (*cloudformation.DescribeStacksOutput, error)
