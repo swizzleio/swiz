@@ -23,19 +23,16 @@ const (
 	PollIntervalSec = 5
 )
 
-func NewEnvService(config *appconfig.AppConfig) (*EnvService, error) {
-	if config == nil {
-		return nil, fmt.Errorf("config is nil")
-	}
-
-	envRepo, err := repo.NewEnvironmentRepo(*config)
+func NewEnvService(config appconfig.AppConfig) (*EnvService, error) {
+	envRepo := repo.NewEnvironmentRepo(config)
+	err := envRepo.Bootstrap()
 	if err != nil {
 		return nil, err
 	}
 
 	return &EnvService{
 		envRepo:    envRepo,
-		iacFactory: repo.NewIacRepoFactory(*config),
+		iacFactory: repo.NewIacRepoFactory(config),
 	}, nil
 }
 

@@ -1,12 +1,9 @@
 package appconfig
 
 import (
-	"encoding/base64"
 	"fmt"
 	"github.com/swizzleio/swiz/pkg/configutil"
 	"github.com/swizzleio/swiz/pkg/fileutil"
-	"github.com/swizzleio/swiz/pkg/security"
-	"gopkg.in/yaml.v3"
 )
 
 var DefaultFileName = "app-config.yaml"
@@ -26,79 +23,93 @@ type AppConfig struct {
 	BaseDir          string   `yaml:"-"`
 }
 
-type Base64Resp struct {
-	Encoded   string
-	WordList  string
-	Signature string
+type Manage struct {
+	ser      fileutil.SerializeHelper[AppConfig]
+	fh       fileutil.FileHelper
+	isLoaded bool
 }
 
-func Parse(location string) (*AppConfig, error) {
-
-	if location == "" {
-		location = DefaultLocation
+func NewManage() *Manage {
+	return &Manage{
+		ser: fileutil.NewYamlHelper[AppConfig](),
+		fh:  fileutil.NewFileHelper(),
 	}
-
-	// Open URL
-	data, err := fileutil.OpenUrl(location)
-	if err != nil {
-		return nil, err
-	}
-
-	// Unmarshal YAML into AppConfig
-	cfg := AppConfig{}
-	err = yaml.Unmarshal(data, &cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg.BaseDir, err = fileutil.GetPathFromUrl(location, false)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cfg, nil
 }
 
-func Generate(env EnvDef) AppConfig {
+func (a *Manage) GenFromEnv(env EnvDef) *AppConfig {
 	// Set defaults if not set
 	env.Name = configutil.SetOrDefault[string](env.Name, "default")
 
 	// Save app config to yaml
-	return AppConfig{
+	cfg := &AppConfig{
 		Version:          1,
 		DefaultEnv:       env.Name,
 		EnvDefinition:    []EnvDef{env},
 		DisabledCommands: []string{},
 	}
+
+	a.ser.Set(*cfg)
+
+	return cfg
 }
 
-func Fetch(data string) error {
-	err := fileutil.CreateDirIfNotExist(DefaultLocation)
+// GenFromB64 generates an app config from a base64 string
+func (a *Manage) GenFromB64(data string, save bool) error {
+
+	err := a.ser.SetFromB64(data)
 	if err != nil {
 		return err
 	}
 
-	// Decode base64
-	b64 := make([]byte, base64.StdEncoding.DecodedLen(len(data)))
-	n, err := base64.StdEncoding.Decode(b64, []byte(data))
-	if err != nil {
-		return err
+	a.isLoaded = true
+
+	if save {
+		err = a.fh.CreateDirIfNotExist(DefaultLocation)
+		if err != nil {
+			return err
+		}
+
+		return a.ser.Save(DefaultLocation)
 	}
 
-	return fileutil.WriteUrl(DefaultLocation, b64[:n])
+	return nil
 }
 
-func (a AppConfig) GetBase64() (*Base64Resp, error) {
-	// Marshal YAML
-	out, err := yaml.Marshal(a)
+func (a *Manage) Load(location string) (*AppConfig, error) {
+	if location == "" {
+		location = DefaultLocation
+	}
+
+	// Open Yaml
+	cfg, err := a.ser.Open(location)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get encoding and signature
-	retVal := &Base64Resp{}
-	retVal.Encoded = base64.StdEncoding.EncodeToString(out)
-	retVal.Signature, retVal.WordList = security.GetSha256AndWordList(retVal.Encoded)
+	openUrl := fileutil.NewFileUrlHelper()
 
-	return retVal, nil
+	cfg.BaseDir, err = openUrl.GetPathFromUrl(location, false)
+	if err != nil {
+		return nil, err
+	}
+
+	a.isLoaded = true
+
+	return cfg, nil
+}
+
+// IsLoaded returns true if the app config is loaded
+func (a *Manage) IsLoaded() bool {
+	return a.isLoaded
+}
+
+// Get returns the app config
+func (a *Manage) Get() AppConfig {
+	return a.ser.Get()
+}
+
+// GetBase64 returns the base64 signature of the app config
+func (a *Manage) GetBase64() (*fileutil.Base64Resp, error) {
+	// Return base64
+	return a.ser.GetBase64()
 }

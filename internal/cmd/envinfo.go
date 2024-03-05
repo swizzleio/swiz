@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/swizzleio/swiz/internal/environment"
 	"github.com/urfave/cli/v2"
 )
@@ -34,7 +32,7 @@ func envInfoCmd(ctx *cli.Context) error {
 	envDef := ctx.String("env-def")
 	envName := ctx.String("name")
 
-	svc, err := environment.NewEnvService(appConfig)
+	svc, err := environment.NewEnvService(appConfigMgr.Get())
 	if err != nil {
 		return err
 	}
@@ -44,11 +42,11 @@ func envInfoCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Name: %v\n", envInfo.EnvironmentName)
-	fmt.Printf("Status: %v\n", envInfo.DeployStatus)
-	fmt.Printf("Stacks [Status]:\n")
+	cl.Info("Name: %v\n", envInfo.EnvironmentName)
+	cl.Info("Status: %v\n", envInfo.DeployStatus)
+	cl.Info("Stacks [Status]:\n")
 	for _, stack := range envInfo.StackInfo {
-		fmt.Printf("  %v [%v]\n", stack.Name, stack.DeployStatus.State)
+		cl.Info("  %v [%v]\n", stack.Name, stack.DeployStatus.State)
 	}
 
 	return nil

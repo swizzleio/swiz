@@ -26,4 +26,4 @@ func (e *NotFoundErr) Is(tgt error) bool {
 	return ok
 }
 
-var GenNotFoundError *NotFoundErr = &NotFoundErr{}
+var GenNotFoundError = &NotFoundErr{}

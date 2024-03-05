@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/swizzleio/swiz/internal/appconfig"
+	appcli "github.com/swizzleio/swiz/pkg/cli"
 	"log"
 	"os"
 
@@ -15,13 +16,16 @@ var (
 )
 
 // App config
-var appConfig *appconfig.AppConfig
+var appConfigMgr = appconfig.NewManage()
 
 // Internal list of commands
 var commands = []*cli.Command{}
 
 // CLI app
 var appCli *cli.App
+
+// CLI
+var cl = appcli.NewCli(nil, nil)
 
 // addCommand adds commands to the list
 func addCommand(cmd *cli.Command) {

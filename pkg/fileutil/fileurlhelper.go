@@ -2,15 +2,38 @@ package fileutil
 
 import (
 	"fmt"
+	"github.com/spf13/afero"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
-func GetPathFromUrl(location string, preserveFilename bool) (string, error) {
+//go:generate mockery --name FileUrlHelper --filename fileurlhelper_mock.go --output ../../mocks/pkg/fileutil --outpkg mockfileutil
+type FileUrlHelper interface {
+	GetPathFromUrl(location string, preserveFilename bool) (string, error)
+	GetScheme(location string) (string, error)
+	UrlWithBaseDir(baseDir string, location string) (string, error)
+	OpenUrl(location string) ([]byte, error)
+	OpenUrlWithBaseDir(baseDir string, location string) ([]byte, error)
+	WriteUrl(location string, data []byte) error
+	WriteUrlWithBaseDir(baseDir string, location string, data []byte) error
+}
+
+type FileUrlHelp struct {
+	appFs afero.Fs
+}
+
+func NewFileUrlHelper() FileUrlHelper {
+	return &FileUrlHelp{
+		appFs: afero.NewOsFs(),
+	}
+}
+
+func (f FileUrlHelp) GetPathFromUrl(location string, preserveFilename bool) (string, error) {
 	// Determine the protocol
 	u, err := url.Parse(location)
 	if err != nil {
@@ -25,7 +48,7 @@ func GetPathFromUrl(location string, preserveFilename bool) (string, error) {
 		}
 
 		var homePath string
-		homePath, err = expandUserPath(u.Host)
+		homePath, err = f.expandUserPath(u.Host)
 		if err != nil {
 			return "", err
 		}
@@ -36,12 +59,12 @@ func GetPathFromUrl(location string, preserveFilename bool) (string, error) {
 	return "", fmt.Errorf("unsupported protocol: %s", u.Scheme)
 }
 
-func OpenUrl(location string) ([]byte, error) {
-	return OpenUrlWithBaseDir("", location)
+func (f FileUrlHelp) OpenUrl(location string) ([]byte, error) {
+	return f.OpenUrlWithBaseDir("", location)
 }
 
-func OpenUrlWithBaseDir(baseDir string, location string) ([]byte, error) {
-	fullLocation, err := UrlWithBaseDir(baseDir, location)
+func (f FileUrlHelp) OpenUrlWithBaseDir(baseDir string, location string) ([]byte, error) {
+	fullLocation, err := f.UrlWithBaseDir(baseDir, location)
 	if err != nil {
 		return nil, err
 	}
@@ -54,15 +77,20 @@ func OpenUrlWithBaseDir(baseDir string, location string) ([]byte, error) {
 
 	switch u.Scheme {
 	case "file":
-		return fileGet(fullLocation)
+		return f.fileGet(fullLocation)
+	case "http":
+		if strings.HasPrefix(u.Host, "127.0.0.1") {
+			// Only fetch from http if this is a loopback
+			return f.httpGet(fullLocation)
+		}
 	case "https":
-		return httpGet(fullLocation)
+		return f.httpGet(fullLocation)
 	}
 
 	return nil, fmt.Errorf("unsupported protocol: %s", u.Scheme)
 }
 
-func UrlWithBaseDir(baseDir string, location string) (string, error) {
+func (f FileUrlHelp) UrlWithBaseDir(baseDir string, location string) (string, error) {
 	// Determine the protocol
 	u, err := url.Parse(location)
 	if err != nil {
@@ -77,12 +105,12 @@ func UrlWithBaseDir(baseDir string, location string) (string, error) {
 	return location, nil
 }
 
-func WriteUrl(location string, data []byte) error {
-	return WriteUrlWithBaseDir("", location, data)
+func (f FileUrlHelp) WriteUrl(location string, data []byte) error {
+	return f.WriteUrlWithBaseDir("", location, data)
 }
 
-func WriteUrlWithBaseDir(baseDir string, location string, data []byte) error {
-	fullLocation, err := UrlWithBaseDir(baseDir, location)
+func (f FileUrlHelp) WriteUrlWithBaseDir(baseDir string, location string, data []byte) error {
+	fullLocation, err := f.UrlWithBaseDir(baseDir, location)
 	if err != nil {
 		return err
 	}
@@ -95,13 +123,13 @@ func WriteUrlWithBaseDir(baseDir string, location string, data []byte) error {
 
 	switch u.Scheme {
 	case "file":
-		return fileSave(fullLocation, data)
+		return f.fileSave(fullLocation, data)
 	}
 
 	return fmt.Errorf("unsupported protocol: %s", u.Scheme)
 }
 
-func GetScheme(location string) (string, error) {
+func (f FileUrlHelp) GetScheme(location string) (string, error) {
 	// Determine the protocol
 	u, err := url.Parse(location)
 	if err != nil {
@@ -111,7 +139,7 @@ func GetScheme(location string) (string, error) {
 	return u.Scheme, nil
 }
 
-func expandUserPath(filePath string) (string, error) {
+func (f FileUrlHelp) expandUserPath(filePath string) (string, error) {
 	if filePath == "" || filePath[0] != '~' {
 		return filePath, nil
 	}
@@ -127,7 +155,7 @@ func expandUserPath(filePath string) (string, error) {
 	return filepath.Join(homeDir, filePath[1:]), nil
 }
 
-func httpGet(location string) ([]byte, error) {
+func (f FileUrlHelp) httpGet(location string) ([]byte, error) {
 	// Send HTTP GET request to the file URL
 	response, err := http.Get(location)
 	if err != nil {
@@ -139,14 +167,14 @@ func httpGet(location string) ([]byte, error) {
 	return io.ReadAll(response.Body)
 }
 
-func fileGet(location string) ([]byte, error) {
-	fullPath, err := GetPathFromUrl(location, true)
+func (f FileUrlHelp) fileGet(location string) ([]byte, error) {
+	fullPath, err := f.GetPathFromUrl(location, true)
 	if err != nil {
 		return nil, err
 	}
 
 	// Open a file for reading
-	file, err := os.Open(fullPath)
+	file, err := f.appFs.Open(fullPath)
 	if err != nil {
 		return nil, err
 	}
@@ -157,14 +185,14 @@ func fileGet(location string) ([]byte, error) {
 	return io.ReadAll(file)
 }
 
-func fileSave(location string, data []byte) error {
-	fullPath, err := GetPathFromUrl(location, true)
+func (f FileUrlHelp) fileSave(location string, data []byte) error {
+	fullPath, err := f.GetPathFromUrl(location, true)
 	if err != nil {
 		return err
 	}
 
 	// Open a file for writing
-	file, err := os.Create(fullPath)
+	file, err := f.appFs.Create(fullPath)
 	if err != nil {
 		return err
 	}

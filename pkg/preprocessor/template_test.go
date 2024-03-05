@@ -5,45 +5,69 @@ import (
 	"testing"
 )
 
+func TestCleanTemplateParam(t *testing.T) {
+	param := CleanTemplateParam("{{paramName}}")
+	assert.Equal(t, "paramName", param, "Expected CleanTemplateParam to return paramName")
+
+	param = CleanTemplateParam("paramName")
+	assert.Equal(t, "paramName", param, "Expected CleanTemplateParam to return paramName")
+}
+
+func TestIsTemplateReplaceParam(t *testing.T) {
+	isParam := IsTemplateReplaceParam("{{paramName}}")
+	assert.True(t, isParam, "Expected IsTemplateReplaceParam to return true")
+
+	isParam = IsTemplateReplaceParam("paramName")
+	assert.False(t, isParam, "Expected IsTemplateReplaceParam to return false")
+}
+
 func TestParseTemplateTokens(t *testing.T) {
-	tests := []struct {
-		name       string
-		template   string
-		replaceIdx map[string]string
-		want       string
+	testCases := []struct {
+		desc        string
+		template    string
+		replaceIdx  map[string]string
+		expectedRes string
 	}{
 		{
-			name:     "Test 1",
-			template: "{{env_name:32}}-{{stack_name:32}}",
+			desc:     "Basic replacement",
+			template: "Hello, {{name:5}}, welcome to {{location:3}}",
 			replaceIdx: map[string]string{
-				"env_name":   "MyFavoriteEnv",
-				"stack_name": "CoolestStack",
+				"name":     "Maggie",
+				"location": "San Francisco",
 			},
-			want: "MyFavoriteEnv-CoolestStack",
+			expectedRes: "Hello, Maggi, welcome to San",
 		},
 		{
-			name:     "Test 1",
-			template: "{{env_name:32}}-{{stack_name:32}}",
+			desc:     "No truncation necessary",
+			template: "My name is {{name:10}}",
 			replaceIdx: map[string]string{
-				"env_name":   "MyFavoriteEnvMyFavoriteEnvMyFavoriteEnvMyFavoriteEnvMyFavoriteEnvMyFavoriteEnv",
-				"stack_name": "CoolestStack",
+				"name": "John",
 			},
-			want: "MyFavoriteEnvMyFavoriteEnvMyFavo-CoolestStack",
+			expectedRes: "My name is John",
 		},
 		{
-			name:     "Test 1",
-			template: "{{env_name:32}}-{{env_name:32}}!!-{{stack_name:8}}",
+			desc:     "Variable not found",
+			template: "Hello, {{name:5}}",
 			replaceIdx: map[string]string{
-				"env_name":   "MyFavoriteEnv",
-				"stack_name": "CoolestStack",
+				"age": "25",
 			},
-			want: "MyFavoriteEnv-MyFavoriteEnv!!-CoolestS",
+			expectedRes: "Hello, ",
 		},
+		{
+			desc:     "Multiple replacements with the same variable",
+			template: "Hi, {{name:2}}. Bye, {{name:2}}.",
+			replaceIdx: map[string]string{
+				"name": "Alice",
+			},
+			expectedRes: "Hi, Al. Bye, Al.",
+		},
+		// Add more test cases as necessary...
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := ParseTemplateTokens(tt.template, tt.replaceIdx)
-			assert.Equalf(t, tt.want, got, "ParseTemplateTokens(%v, %v)", tt.template, tt.replaceIdx)
+
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			result := ParseTemplateTokens(tC.template, tC.replaceIdx)
+			assert.Equal(t, tC.expectedRes, result, "Expected ParseTemplateTokens to return the replaced string")
 		})
 	}
 }

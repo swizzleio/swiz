@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/swizzleio/swiz/internal/environment"
 	"strings"
 
@@ -68,7 +67,7 @@ func envCreateCmd(ctx *cli.Context) error {
 		stackList = append(stackList, commaSeperated...)
 	}
 
-	svc, err := environment.NewEnvService(appConfig)
+	svc, err := environment.NewEnvService(appConfigMgr.Get())
 	if err != nil {
 		return err
 	}
@@ -79,7 +78,7 @@ func envCreateCmd(ctx *cli.Context) error {
 	}
 
 	for _, stack := range stackInfo {
-		fmt.Printf("Stack: %v [%v] - %v\n", stack.Name, stack.DeployStatus.State, stack.NextAction)
+		cl.Info("Stack: %v [%v] - %v\n", stack.Name, stack.DeployStatus.State, stack.NextAction)
 	}
 
 	return nil

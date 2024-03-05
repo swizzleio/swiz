@@ -14,72 +14,94 @@ import (
 var DefaultAccountName = "dev"
 
 type AwsConfig struct {
-	Name      string
+	//Name string
 	Profile   string
 	AccountId string
 	Region    string
 	Endpoint  string
 }
 
-func GetDefaultConfig() (*AwsConfig, error) {
+type AwsConfigManager interface {
+	GetDefaultConfig() (*AwsConfig, error)
+	GetAllOrgAccounts() ([]AwsConfig, error)
+}
+
+type AwsConfiger interface {
+	GenerateConfig() aws.Config
+}
+
+type AwsConfigManage struct {
+	cfg aws.Config
+	iam Iamer
+	sts Stser
+	org Orger
+}
+
+func NewAwsConfigManage() (AwsConfigManager, error) {
 	// Load AWS SDK configuration
 	cfg, err := config.LoadDefaultConfig(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	// Create STS client
-	svc := sts.NewFromConfig(cfg)
+	return &AwsConfigManage{
+		cfg: cfg,
+		iam: iam.NewFromConfig(cfg),
+		sts: sts.NewFromConfig(cfg),
+		org: organizations.NewFromConfig(cfg),
+	}, nil
+}
 
+func (c AwsConfigManage) GetDefaultConfig() (*AwsConfig, error) {
 	// Get account ID
-	resp, err := svc.GetCallerIdentity(context.Background(), &sts.GetCallerIdentityInput{})
+	resp, err := c.sts.GetCallerIdentity(context.Background(), &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return nil, err
 	}
 
-	// Create IAM client and get account alias
-	svcIam := iam.NewFromConfig(cfg)
-	iamResp, err := svcIam.ListAccountAliases(context.Background(), &iam.ListAccountAliasesInput{})
+	// Get account alias
+	iamResp, err := c.iam.ListAccountAliases(context.Background(), &iam.ListAccountAliasesInput{})
 	accountName := DefaultAccountName
-	if err != nil && len(iamResp.AccountAliases) != 0 {
+	if err == nil && len(iamResp.AccountAliases) != 0 {
 		accountName = iamResp.AccountAliases[0]
 	}
 
 	return &AwsConfig{
-		Name:      accountName,
+		Profile:   accountName,
 		AccountId: *resp.Account,
-		Region:    cfg.Region,
+		Region:    c.cfg.Region,
 	}, nil
 }
 
-func GetAllOrgAccounts() ([]AwsConfig, error) {
-	// Load AWS SDK configuration
-	cfg, err := config.LoadDefaultConfig(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
+func (c AwsConfigManage) GetAllOrgAccounts() ([]AwsConfig, error) {
 	// Get accounts
-	orgSvc := organizations.NewFromConfig(cfg)
-	resp, err := orgSvc.ListAccounts(context.Background(), &organizations.ListAccountsInput{})
+	resp, err := c.org.ListAccounts(context.Background(), &organizations.ListAccountsInput{})
 	if err != nil {
 		return nil, err
 	}
 
 	retVal := make([]AwsConfig, len(resp.Accounts))
-	for _, acct := range resp.Accounts {
+	for i, acct := range resp.Accounts {
 
-		retVal = append(retVal, AwsConfig{
-			Name:      *acct.Name,
+		retVal[i] = AwsConfig{
+			Profile:   *acct.Name,
 			AccountId: *acct.Id,
-			Region:    cfg.Region,
-		})
+			Region:    c.cfg.Region,
+		}
 	}
 
 	return retVal, nil
 }
 
-// GenerateConfig generates an AWS config
+func NewAwsConfig(name, accountId, region string) AwsConfiger {
+	return &AwsConfig{
+		Profile:   name,
+		AccountId: accountId,
+		Region:    region,
+	}
+}
+
+// GenerateConfig generates an AWS specific config
 func (a AwsConfig) GenerateConfig() aws.Config {
 	// Initialize a session that the SDK will use to load
 	// credentials from the shared credentials file ~/.aws/credentials

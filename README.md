@@ -258,8 +258,13 @@ If you want to say thanks and help support active development of Swizzle, you ca
 
 #### Tools
 * [Golang](https://golang.org/doc/) is the language used.
+  * Install (OSX-homebrew) using `brew install go`
 * [make](https://www.gnu.org/software/make/manual/make.html) is used for building and testing.
+  * Install (OSX-homebrew) using `brew install make`
 * [golangci-lint](https://golangci-lint.run/) is used for linting.
+  * Install (OSX-homebrew) using `brew install golangci-lint`
+* [Mockery](https://vektra.github.io/mockery/installation/) is used for generating mocks.
+  * Install (OSX) using `go install github.com/vektra/mockery/v2@v2.20.0`
 
 #### Libraries used
 * [AWS SDK for go](https://aws.github.io/aws-sdk-go-v2/docs/) for talking to AWS. Services used are:
@@ -271,6 +276,7 @@ If you want to say thanks and help support active development of Swizzle, you ca
 * [Urfave CLI V2](https://cli.urfave.org/v2/getting-started/) as the CLI library.
 * [YAML](https://pkg.go.dev/gopkg.in/yaml.v3) for parsing YAML files.
 * [go-survey](https://github.com/go-survey/survey) for prompting the user for input.
+* [afero](https://github.com/spf13/afero) for abstracting the file system so that the code can be tested.
 
 ### 🛠️ Building
 

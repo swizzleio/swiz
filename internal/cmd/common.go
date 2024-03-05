@@ -1,16 +1,16 @@
 package cmd
 
 import (
-	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/urfave/cli/v2"
 	"strings"
 )
 
 func genCommandPreflight(appConfigSoftFail bool) cli.BeforeFunc {
+
 	return func(ctx *cli.Context) error {
 		// Validate app config
 		appConfigLoc := ctx.String("appconfig")
-		ac, err := appconfig.Parse(appConfigLoc)
+		_, err := appConfigMgr.Load(appConfigLoc)
 		if err != nil {
 			if appConfigSoftFail {
 				return nil
@@ -19,9 +19,7 @@ func genCommandPreflight(appConfigSoftFail bool) cli.BeforeFunc {
 			return err
 		}
 
-		appConfig = ac
-
-		for _, cmd := range ac.DisabledCommands {
+		for _, cmd := range appConfigMgr.Get().DisabledCommands {
 
 			// Split command into parts in case there is a subcommand
 			cmdList := strings.Split(cmd, ".")

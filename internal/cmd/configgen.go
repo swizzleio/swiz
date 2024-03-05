@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/environment/model"
+	appcli "github.com/swizzleio/swiz/pkg/cli"
 	"github.com/swizzleio/swiz/pkg/drivers/awswrap"
 	"github.com/swizzleio/swiz/pkg/fileutil"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"path/filepath"
 	"strings"
 )
@@ -25,20 +23,14 @@ func init() {
 	})
 }
 
-func convertToCamelCase(s string) string {
-	s = strings.TrimSpace(s)
-	words := strings.Split(s, " ")
-
-	// Convert the first word to lowercase
-	words[0] = strings.ToLower(words[0])
-
-	// Convert subsequent words to title case
-	for i := 1; i < len(words); i++ {
-		words[i] = cases.Title(language.Und, cases.NoLower).String(words[i])
+func writeYaml[T any](location string, err error, data T) error {
+	if err != nil {
+		return err
 	}
+	ser := fileutil.NewYamlHelper[T]()
+	err = ser.Set(data).Save(location)
 
-	// Join the words together
-	return strings.Join(words, "")
+	return err
 }
 
 func configGenCmd(ctx *cli.Context) error {
@@ -79,29 +71,21 @@ func configGenCmd(ctx *cli.Context) error {
 
 	envCfg := model.GenerateEnvironmentConfig(stacks, enclaves, defaultEnclave)
 
-	fmt.Printf("Exporting files to %v\n", appconfig.DefaultOutLocation)
-	fErr := fileutil.CreateDirIfNotExist(appconfig.DefaultOutLocation)
+	cl.Info("Exporting files to %v\n", appconfig.DefaultOutLocation)
+	fh := fileutil.NewFileHelper()
+
+	fErr := fh.CreateDirIfNotExist(appconfig.DefaultOutLocation)
 	if fErr != nil {
 		return fErr
 	}
 
-	fErr = fileutil.YamlToLocation(fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, appconfig.DefaultFileName), cfg.AppConfig)
-	if fErr != nil {
-		return fErr
-	}
-	fErr = fileutil.YamlToLocation(fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName), envCfg)
-	if fErr != nil {
-		return fErr
-	}
-
+	serErr := writeYaml[appconfig.AppConfig](fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, appconfig.DefaultFileName), nil, *cfg.AppConfig)
+	serErr = writeYaml[model.EnvironmentConfig](fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName), serErr, envCfg)
 	for _, stack := range stacks {
-		fErr = fileutil.YamlToLocation(model.GenerateFileName(stack.Name), stack)
-		if fErr != nil {
-			return fErr
-		}
+		serErr = writeYaml[model.StackConfig](model.GenerateFileName(stack.Name), serErr, stack)
 	}
 
-	return nil
+	return serErr
 }
 
 func getDefaultEnclave(enclaveNames []string) (string, error) {
@@ -110,13 +94,11 @@ func getDefaultEnclave(enclaveNames []string) (string, error) {
 		return enclaveNames[0], nil
 	}
 
-	prompt := &survey.Select{
-		Message: "Which enclave should be the default?",
-		Options: enclaveNames,
+	defaultEnclave, err := cl.AskOptions("Which enclave should be the default?", enclaveNames)
+	if err != nil {
+		return "", err
 	}
-	if sErr := survey.AskOne(prompt, &defaultEnclave); sErr != nil {
-		return "", sErr
-	}
+
 	return defaultEnclave, nil
 }
 
@@ -124,13 +106,9 @@ func getEnclaves(cfg *coreConfig, awsAccts []awswrap.AwsConfig, paramMap map[str
 	enclaves := []model.Enclave{}
 	enclaveNames := []string{}
 	for _, acct := range awsAccts {
-
-		pv := ""
-		prompt := &survey.Input{
-			Message: fmt.Sprintf("Name the enclave that AWS account %v will be part of (leave blank to ignore)", acct.Name),
-		}
-		if sErr := survey.AskOne(prompt, &pv); sErr != nil {
-			return nil, nil, sErr
+		pv, err := cl.Ask(fmt.Sprintf("Name the enclave that AWS account %v will be part of (leave blank to ignore)", acct.Profile), false)
+		if err != nil {
+			return nil, nil, err
 		}
 
 		if strings.TrimSpace(pv) != "" {
@@ -147,30 +125,21 @@ func getEnclaves(cfg *coreConfig, awsAccts []awswrap.AwsConfig, paramMap map[str
 func getStacks(params map[string]string) ([]model.StackConfig, error) {
 	stacks := []model.StackConfig{}
 	for {
-		templateFile := ""
-
-		prompt := &survey.Input{
-			Message: "Enter the filename of the IaC template for your stack (leave blank to exit):",
-			Suggest: func(toComplete string) []string {
+		templateFile, err := cl.AskAutocomplete("Enter the filename of the IaC template for your stack (leave blank to exit):", false,
+			func(toComplete string) []string {
 				files, _ := filepath.Glob(toComplete + "*")
 				return files
-			},
-		}
-
-		if sErr := survey.AskOne(prompt, &templateFile); sErr != nil {
-			return nil, sErr
+			})
+		if err != nil {
+			return nil, err
 		}
 
 		if strings.TrimSpace(templateFile) == "" {
 			break
 		}
 
-		stackName := ""
-
-		prompt = &survey.Input{
-			Message: "Enter the name of the stack:",
-		}
-		if sErr := survey.AskOne(prompt, &stackName, survey.WithValidator(survey.Required)); sErr != nil {
+		stackName, sErr := cl.Ask("Enter the name of the stack:", true)
+		if sErr != nil {
 			return nil, sErr
 		}
 
@@ -183,13 +152,11 @@ func getParams(cfg *coreConfig) (map[string]string, error) {
 	globalParamList := strings.Split(cfg.GlobalParams, ",")
 	paramMap := map[string]string{}
 	for _, gp := range globalParamList {
-		pv := ""
-		prompt := &survey.Input{
-			Message: fmt.Sprintf("Provide a value for the global parameter %v", gp),
+		pv, err := cl.Ask(fmt.Sprintf("Provide a value for the global parameter %v", gp), false)
+		if err != nil {
+			return nil, err
 		}
-		if sErr := survey.AskOne(prompt, &pv); sErr != nil {
-			return nil, sErr
-		}
+
 		paramMap[gp] = pv
 	}
 	return paramMap, nil
@@ -199,37 +166,42 @@ type coreConfig struct {
 	EnvName      string
 	GlobalParams string
 	DomainName   string
-	AppConfig    appconfig.AppConfig
+	AppConfig    *appconfig.AppConfig
 }
 
 func getCoreConfig() (*coreConfig, error) {
-	qs := []*survey.Question{
+	qs := []appcli.AskManyOpts{
 		{
-			Name:      "envName",
-			Prompt:    &survey.Input{Message: "Provide a name of your environment"},
-			Transform: survey.TransformString(convertToCamelCase),
-			Validate:  survey.Required,
+			Key:           "EnvName",
+			Message:       "Provide a name of your environment",
+			Required:      true,
+			TransformMode: appcli.TransformModeCamelCase,
 		},
 		{
-			Name:      "domainName",
-			Prompt:    &survey.Input{Message: "What domain name do you want to use for this environment?"},
-			Transform: survey.TransformString(strings.TrimSpace),
+			Key:           "DomainName",
+			Message:       "What domain name do you want to use for this environment?",
+			TransformMode: appcli.TransformModeTrimSpace,
 		},
+
 		{
-			Name:      "globalParams",
-			Prompt:    &survey.Input{Message: "Specify a comma seperated list for any global parameters (i.e. LogLevel,VpcId)"},
-			Transform: survey.TransformString(strings.TrimSpace),
+			Key:           "GlobalParams",
+			Message:       "Specify a comma seperated list for any global parameters (i.e. LogLevel,VpcId)",
+			TransformMode: appcli.TransformModeTrimSpace,
 		},
 	}
 
-	answers := coreConfig{}
-
-	err := survey.Ask(qs, &answers)
+	resp, err := cl.AskMany(qs)
 	if err != nil {
 		return nil, err
 	}
 
-	answers.AppConfig = appconfig.Generate(appconfig.EnvDef{
+	answers := coreConfig{
+		EnvName:      resp["EnvName"],
+		DomainName:   resp["DomainName"],
+		GlobalParams: resp["GlobalParams"],
+	}
+
+	answers.AppConfig = appConfigMgr.GenFromEnv(appconfig.EnvDef{
 		Name:       answers.EnvName,
 		EnvDefFile: fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName),
 	})
@@ -238,45 +210,55 @@ func getCoreConfig() (*coreConfig, error) {
 }
 
 func getAwsConfig() ([]awswrap.AwsConfig, error) {
-	fmt.Printf("Scanning for AWS accounts...\n")
-	awsAccts, aErr := awswrap.GetAllOrgAccounts()
+	cl.Info("Scanning for AWS accounts...\n")
+	awsCfg, err := awswrap.NewAwsConfigManage()
+	if err != nil {
+		return nil, err
+	}
+
+	awsAccts, aErr := awsCfg.GetAllOrgAccounts()
 	if aErr != nil {
 		// Get the default account
-		awsAcct, aErr := awswrap.GetDefaultConfig()
-		if aErr == nil {
+		awsAcct, cErr := awsCfg.GetDefaultConfig()
+		if cErr == nil {
 			awsAccts = append(awsAccts, *awsAcct)
 		}
 	}
 
 	// If there are no accounts, prompt for a default account
 	if len(awsAccts) == 0 {
-		awsCfg := awswrap.AwsConfig{}
-		awsQs := []*survey.Question{
+		qs := []appcli.AskManyOpts{
 			{
-				Name:      "name",
-				Prompt:    &survey.Input{Message: "Provide a name of your AWS account"},
-				Transform: survey.TransformString(strings.TrimSpace),
-				Validate:  survey.Required,
+				Key:           "Name",
+				Message:       "Provide the name of your AWS account",
+				Required:      true,
+				TransformMode: appcli.TransformModeTrimSpace,
+			},
+			{
+				Key:           "AccountId",
+				Message:       "Enter the AWS account id",
+				TransformMode: appcli.TransformModeTrimSpace,
 			},
 
 			{
-				Name:      "accountId",
-				Prompt:    &survey.Input{Message: "Enter the AWS account id"},
-				Transform: survey.TransformString(strings.TrimSpace),
-			},
-			{
-				Name:      "region",
-				Prompt:    &survey.Input{Message: "What region do you want to use for this account?"},
-				Transform: survey.TransformString(strings.TrimSpace),
+				Key:           "Region",
+				Message:       "What region do you want to use for this account?",
+				TransformMode: appcli.TransformModeTrimSpace,
 			},
 		}
 
-		sErr := survey.Ask(awsQs, &awsCfg)
-		if sErr != nil {
-			return nil, sErr
+		resp, err := cl.AskMany(qs)
+		if err != nil {
+			return nil, err
 		}
 
-		awsAccts = append(awsAccts, awsCfg)
+		acct := awswrap.AwsConfig{
+			Profile:   resp["Name"],
+			AccountId: resp["AccountId"],
+			Region:    resp["Region"],
+		}
+
+		awsAccts = append(awsAccts, acct)
 	}
 	return awsAccts, nil
 }
