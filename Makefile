@@ -26,7 +26,7 @@ build-cli:
 ## unittest: Run unit tests
 .PHONY: unittest
 unittest:
-	go test -v ./...
+	go test -v ./... -coverprofile ./out/cover.out
 
 ## gen: Run go generate
 .PHONY: gen
