@@ -7,6 +7,7 @@ import (
 
 const (
 	DefaultNamingScheme = "{{env_name:32}}-{{stack_name:32}}"
+	DefaultEnclaveName  = "NameMe"
 )
 
 type StackConfigDef struct {

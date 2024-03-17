@@ -71,18 +71,28 @@ func configGenCmd(ctx *cli.Context) error {
 
 	envCfg := model.GenerateEnvironmentConfig(stacks, enclaves, defaultEnclave)
 
-	cl.Info("Exporting files to %v\n", appconfig.DefaultOutLocation)
+	cl.Info("Exporting files to %v\n", appconfig.DefaultLocation)
 	fh := fileutil.NewFileHelper()
 
-	fErr := fh.CreateDirIfNotExist(appconfig.DefaultOutLocation)
+	fErr := fh.CreateDirIfNotExist(appconfig.DefaultLocation)
 	if fErr != nil {
 		return fErr
 	}
 
-	serErr := writeYaml[appconfig.AppConfig](fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, appconfig.DefaultFileName), nil, *cfg.AppConfig)
-	serErr = writeYaml[model.EnvironmentConfig](fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName), serErr, envCfg)
+	serErr := writeYaml[appconfig.AppConfig](appconfig.DefaultLocation, nil, *cfg.AppConfig)
+	if serErr != nil {
+		return serErr
+	}
+	serErr = writeYaml[model.EnvironmentConfig](appconfig.DefaultLocation, serErr, envCfg)
+	if serErr != nil {
+		return serErr
+	}
+
 	for _, stack := range stacks {
-		serErr = writeYaml[model.StackConfig](model.GenerateFileName(stack.Name), serErr, stack)
+		stackSerErr := writeYaml[model.StackConfig](model.GenerateFileName(stack.Name), serErr, stack)
+		if stackSerErr != nil {
+			serErr = stackSerErr
+		}
 	}
 
 	return serErr
@@ -105,11 +115,22 @@ func getDefaultEnclave(enclaveNames []string) (string, error) {
 func getEnclaves(cfg *coreConfig, awsAccts []awswrap.AwsConfig, paramMap map[string]string) ([]model.Enclave, []string, error) {
 	enclaves := []model.Enclave{}
 	enclaveNames := []string{}
+	counter := 0
 	for _, acct := range awsAccts {
 		pv, err := cl.Ask(fmt.Sprintf("Name the enclave that AWS account %v will be part of (leave blank to ignore)", acct.Profile), false)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		if pv == "" {
+			// Generate enclave name, if one isn't provided it's NameMe
+			if len(awsAccts) > 1 {
+				pv = fmt.Sprintf("%s-%v", model.DefaultEnclaveName, counter)
+			} else {
+				pv = model.DefaultEnclaveName
+			}
+		}
+		counter++
 
 		if strings.TrimSpace(pv) != "" {
 			enclave := model.GenerateEnclave(acct, cfg.DomainName, paramMap)
@@ -119,6 +140,7 @@ func getEnclaves(cfg *coreConfig, awsAccts []awswrap.AwsConfig, paramMap map[str
 			enclaves = append(enclaves, enclave)
 		}
 	}
+
 	return enclaves, enclaveNames, nil
 }
 
@@ -151,13 +173,16 @@ func getStacks(params map[string]string) ([]model.StackConfig, error) {
 func getParams(cfg *coreConfig) (map[string]string, error) {
 	globalParamList := strings.Split(cfg.GlobalParams, ",")
 	paramMap := map[string]string{}
-	for _, gp := range globalParamList {
-		pv, err := cl.Ask(fmt.Sprintf("Provide a value for the global parameter %v", gp), false)
-		if err != nil {
-			return nil, err
-		}
+	// Check to make sure we actually have a parameter
+	if (len(globalParamList) > 0) && globalParamList[0] != "" {
+		for _, gp := range globalParamList {
+			pv, err := cl.Ask(fmt.Sprintf("Provide a value for the global parameter %v", gp), false)
+			if err != nil {
+				return nil, err
+			}
 
-		paramMap[gp] = pv
+			paramMap[gp] = pv
+		}
 	}
 	return paramMap, nil
 }
@@ -171,12 +196,6 @@ type coreConfig struct {
 
 func getCoreConfig() (*coreConfig, error) {
 	qs := []appcli.AskManyOpts{
-		{
-			Key:           "EnvName",
-			Message:       "Provide a name of your environment",
-			Required:      true,
-			TransformMode: appcli.TransformModeCamelCase,
-		},
 		{
 			Key:           "DomainName",
 			Message:       "What domain name do you want to use for this environment?",
