@@ -277,7 +277,7 @@ If you want to say thanks and help support active development of Swizzle, you ca
 * [YAML](https://pkg.go.dev/gopkg.in/yaml.v3) for parsing YAML files.
 * [go-survey](https://github.com/go-survey/survey) for prompting the user for input.
 * [afero](https://github.com/spf13/afero) for abstracting the file system so that the code can be tested.
-* [rogpeppe/go-internal](github.com/rogpeppe/go-internal) for the testscript package. Here is a [3 part tutorial](https://bitfieldconsulting.com/golang/test-scripts)
+* [rogpeppe/go-internal](github.com/rogpeppe/go-internal) for the testscript package. [Docs](https://pkg.go.dev/github.com/rogpeppe/go-internal/testscript). Here is a [3 part tutorial](https://bitfieldconsulting.com/golang/test-scripts)
 
 ### 🛠️ Building
 
