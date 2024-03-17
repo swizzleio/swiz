@@ -17,6 +17,12 @@ func TestMain(m *testing.M) {
 
 func Test_Version(t *testing.T) {
 	testscript.Run(t, testscript.Params{
-		Dir: "scripts",
+		Dir: "scripts/version",
+	})
+}
+
+func Test_Config(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir: "scripts/config",
 	})
 }
