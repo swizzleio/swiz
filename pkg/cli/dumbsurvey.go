@@ -10,7 +10,7 @@ import (
 // This provides a more testable version of survey, instead of smart prompting, it just uses a scanner
 
 type DumbSurvey struct {
-	scanner *bufio.Scanner
+	scanner *bufio.Reader
 }
 
 // AskOne is a wrapper for the survey.AskOne() func
@@ -18,24 +18,28 @@ func (d *DumbSurvey) AskOne(p survey.Prompt, response interface{}, opts ...surve
 	fmt.Printf("%v ", getStringFromPrompt(p))
 
 	if d.scanner == nil {
-		d.scanner = bufio.NewScanner(os.Stdin)
+		//strReader := strings.NewReader("dev-sandbox\n012345678901\nus-east-2\nexample.com\nLogLevel,Apm\nDebug\nEnabled\n\n\n")
+		d.scanner = bufio.NewReader(os.Stdin)
+		//d.scanner = bufio.NewReader(strReader)
 	}
 
-	d.scanner.Scan()
-	if d.scanner.Err() != nil {
-		return fmt.Errorf("error reading %v - %v", d.scanner.Err(), d.scanner.Text())
+	line, err := d.scanner.ReadString('\n')
+	if err != nil {
+		fmt.Printf("%v", err)
+		return err
 	}
-	fmt.Println(d.scanner.Text())
-	//fmt.Println(d.scanner.Text())
-	//fmt.Println(d.scanner.Bytes())
-	response = d.scanner.Text()
+
+	//fmt.Println(line)
+
+	pResponse := response.(*string)
+	*pResponse = line
 
 	return nil
 }
 
 // Ask is a wrapper for the survey.Ask() func
 func (d DumbSurvey) Ask(qs []*survey.Question, response interface{}, opts ...survey.AskOpt) error {
-	answers := &map[string]string{}
+	answers := map[string]string{}
 	for _, q := range qs {
 		resp := ""
 		err := d.AskOne(q.Prompt, &resp, opts...)
@@ -43,10 +47,15 @@ func (d DumbSurvey) Ask(qs []*survey.Question, response interface{}, opts ...sur
 			return err
 		}
 
-		(*answers)[q.Name] = resp
+		answers[q.Name] = resp
 	}
 
-	response = answers
+	pResponse := response.(*map[string]interface{})
+	for k, v := range answers {
+		var iface interface{} = v
+		(*pResponse)[k] = iface
+	}
+
 	return nil
 }
 

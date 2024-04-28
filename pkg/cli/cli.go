@@ -51,7 +51,7 @@ func NewCli(o io.Writer, i io.Reader) SwizClier {
 		output: o,
 		input:  i,
 		err:    o,
-		survey: &SurveyWrap{},
+		survey: &DumbSurvey{}, //&SurveyWrap{},
 	}
 }
 
