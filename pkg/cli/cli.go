@@ -46,13 +46,11 @@ type SwizClier interface {
 }
 
 // NewCli creates a new cli
-func NewCli(o io.Writer, i io.Reader) SwizClier {
-	return &SwizCli{
-		output: o,
-		input:  i,
-		err:    o,
-		survey: &DumbSurvey{}, //&SurveyWrap{},
+func NewCli(sw SurveyWrapper) SwizClier {
+	if sw == nil {
+		sw = &SurveyWrap{}
 	}
+	return &SwizCli{survey: sw}
 }
 
 // Info outputs an informational message
