@@ -1,0 +1,5 @@
+{
+    "aws.telemetry": false,
+    "amazonQ.telemetry": false,
+    "go.buildTags": "functionaltest"
+}
