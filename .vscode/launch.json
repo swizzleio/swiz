@@ -21,10 +21,7 @@
             "request": "launch",
             "mode": "test",
             "program": "${workspaceFolder}/test/functional",
-            "debugAdapter": "legacy",
-            "buildFlags": ["--tags=functionaltest"],
-            //"args": ["--tags=functionaltest"],
-            //"dlvFlags": ["--build-flags=\"-tags=functionaltest\""]
+            "buildFlags": ["--tags=functionaltest"]
         },
         {
             "name": "Create awesomeEnv",
