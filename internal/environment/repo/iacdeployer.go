@@ -5,6 +5,7 @@ import (
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
+	"github.com/spf13/afero"
 )
 
 const defaultIacType = model.IacTypeCf
@@ -38,7 +39,7 @@ func NewIacRepoFactory(config appconfig.AppConfig) *IacRepoFactory {
 	}
 }
 
-func (f IacRepoFactory) GetDeployer(enclave model.Enclave, providerName string, iacType string) (IacDeployer, error) {
+func (f IacRepoFactory) GetDeployer(appFs afero.Fs, enclave model.Enclave, providerName string, iacType string) (IacDeployer, error) {
 
 	provider := enclave.GetProvider(providerName)
 	if provider == nil {
@@ -60,7 +61,7 @@ func (f IacRepoFactory) GetDeployer(enclave model.Enclave, providerName string, 
 	if f.iacMap[mapping] == nil {
 		switch iacType {
 		case model.IacTypeCf:
-			f.iacMap[mapping] = NewCloudFormationRepo(f.config, enclave, provider)
+			f.iacMap[mapping] = NewCloudFormationRepo(appFs, f.config, enclave, provider)
 		case model.IacTypeDummy:
 			f.iacMap[mapping] = NewDummyDeployRepo(f.config, enclave, provider)
 		default:

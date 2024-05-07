@@ -1,8 +1,9 @@
 package fileutil
 
 import (
-	"github.com/spf13/afero"
 	"os"
+
+	"github.com/spf13/afero"
 )
 
 //go:generate mockery --name FileHelper --filename filehelper_mock.go --output ../../mocks/pkg/fileutil --outpkg mockfileutil
@@ -15,10 +16,13 @@ type FileHelp struct {
 	appFs afero.Fs
 }
 
-func NewFileHelper() FileHelper {
+func NewFileHelper(appFs afero.Fs) FileHelper {
+	if appFs == nil {
+		appFs = afero.NewOsFs()
+	}
 	return &FileHelp{
-		fh:    NewFileUrlHelper(),
-		appFs: afero.NewOsFs(),
+		fh:    NewFileUrlHelper(appFs),
+		appFs: appFs,
 	}
 }
 

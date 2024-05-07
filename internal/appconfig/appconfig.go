@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/swizzleio/swiz/pkg/configutil"
 	"github.com/swizzleio/swiz/pkg/fileutil"
+	"github.com/spf13/afero"
 )
 
 var DefaultFileName = "app-config.yaml"
@@ -24,15 +25,17 @@ type AppConfig struct {
 }
 
 type Manage struct {
+	appFs afero.Fs
 	ser      fileutil.SerializeHelper[AppConfig]
 	fh       fileutil.FileHelper
 	isLoaded bool
 }
 
-func NewManage() *Manage {
+func NewManage(appFs afero.Fs) *Manage {
 	return &Manage{
-		ser: fileutil.NewYamlHelper[AppConfig](),
-		fh:  fileutil.NewFileHelper(),
+		appFs: appFs,
+		ser: fileutil.NewYamlHelper[AppConfig](appFs),
+		fh:  fileutil.NewFileHelper(appFs),
 	}
 }
 
@@ -86,7 +89,7 @@ func (a *Manage) Load(location string) (*AppConfig, error) {
 		return nil, err
 	}
 
-	openUrl := fileutil.NewFileUrlHelper()
+	openUrl := fileutil.NewFileUrlHelper(a.appFs)
 
 	cfg.BaseDir, err = openUrl.GetPathFromUrl(location, false)
 	if err != nil {

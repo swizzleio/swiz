@@ -2,10 +2,12 @@ package cmds
 
 import (
 	"fmt"
-	"github.com/swizzleio/swiz/internal/appconfig"
-	appcli "github.com/swizzleio/swiz/pkg/cli"
 	"log"
 	"os"
+
+	"github.com/spf13/afero"
+	"github.com/swizzleio/swiz/internal/appconfig"
+	appcli "github.com/swizzleio/swiz/pkg/cli"
 
 	"github.com/urfave/cli/v2"
 )
@@ -15,8 +17,11 @@ var (
 	CommitHash = "n/a"
 )
 
+// OS filesystem
+var appFs = afero.NewOsFs()
+
 // App config
-var appConfigMgr = appconfig.NewManage()
+var appConfigMgr = appconfig.NewManage(appFs)
 
 // Internal list of commands
 var commands = []*cli.Command{}

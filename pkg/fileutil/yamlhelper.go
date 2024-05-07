@@ -4,6 +4,8 @@ package fileutil
 import (
 	"encoding/base64"
 	"errors"
+
+	"github.com/spf13/afero"
 	"github.com/swizzleio/swiz/pkg/security"
 	"gopkg.in/yaml.v3"
 )
@@ -45,9 +47,9 @@ type YamlHelp[T any] struct {
 }
 
 // NewYamlHelper creates a new instance of YamlHelper with default settings.
-func NewYamlHelper[T any]() SerializeHelper[T] {
+func NewYamlHelper[T any](appFs afero.Fs) SerializeHelper[T] {
 	return &YamlHelp[T]{
-		f: NewFileUrlHelper(),
+		f: NewFileUrlHelper(appFs),
 	}
 }
 

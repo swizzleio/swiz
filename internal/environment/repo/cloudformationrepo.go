@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/smithy-go"
+	"github.com/spf13/afero"
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
@@ -26,12 +27,12 @@ type CloudFormationRepo struct {
 	newDescribeStacksPaginator awswrap.CfDescribeStacksPaginatorNewer
 }
 
-func NewCloudFormationRepo(config appconfig.AppConfig, enclave model.Enclave, provider *model.EncProvider) IacDeployer {
+func NewCloudFormationRepo(appFs afero.Fs, config appconfig.AppConfig, enclave model.Enclave, provider *model.EncProvider) IacDeployer {
 	cfg := provider.ToAwsConfig()
 
 	return &CloudFormationRepo{
 		client:                     cloudformation.NewFromConfig(cfg.GenerateConfig()),
-		openUrl:                    fileutil.NewFileUrlHelper(),
+		openUrl:                    fileutil.NewFileUrlHelper(appFs),
 		newDescribeStacksPaginator: cloudformation.NewDescribeStacksPaginator,
 	}
 }

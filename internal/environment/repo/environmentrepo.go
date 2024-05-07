@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 
+	"github.com/spf13/afero"
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/environment/model"
 	"github.com/swizzleio/swiz/pkg/errtype"
@@ -17,13 +18,13 @@ type EnvironmentRepo struct {
 	openUrl  fileutil.FileUrlHelper
 }
 
-func NewEnvironmentRepo(config appconfig.AppConfig) *EnvironmentRepo {
+func NewEnvironmentRepo(appFs afero.Fs, config appconfig.AppConfig) *EnvironmentRepo {
 	return &EnvironmentRepo{
 		envCfg:   map[string]*model.EnvironmentConfig{},
 		config:   config,
-		serEnv:   fileutil.NewYamlHelper[model.EnvironmentConfig](),
-		serStack: fileutil.NewYamlHelper[model.StackConfig](),
-		openUrl:  fileutil.NewFileUrlHelper(),
+		serEnv:   fileutil.NewYamlHelper[model.EnvironmentConfig](appFs),
+		serStack: fileutil.NewYamlHelper[model.StackConfig](appFs),
+		openUrl:  fileutil.NewFileUrlHelper(appFs),
 	}
 }
 

@@ -32,7 +32,7 @@ func envInfoCmd(ctx *cli.Context) error {
 	envDef := ctx.String("env-def")
 	envName := ctx.String("name")
 
-	svc, err := environment.NewEnvService(appConfigMgr.Get())
+	svc, err := environment.NewEnvService(appFs, appConfigMgr.Get())
 	if err != nil {
 		return err
 	}

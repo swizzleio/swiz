@@ -53,7 +53,7 @@ func envDeleteCmd(ctx *cli.Context) error {
 	noOrphanDelete := ctx.Bool("no-orphan-delete")
 	fastDelete := ctx.Bool("fast-delete")
 
-	svc, err := environment.NewEnvService(appConfigMgr.Get())
+	svc, err := environment.NewEnvService(appFs, appConfigMgr.Get())
 	if err != nil {
 		return err
 	}

@@ -27,9 +27,12 @@ type FileUrlHelp struct {
 	appFs afero.Fs
 }
 
-func NewFileUrlHelper() FileUrlHelper {
+func NewFileUrlHelper(appFs afero.Fs) FileUrlHelper {
+	if appFs == nil {
+		appFs = afero.NewOsFs()
+	}
 	return &FileUrlHelp{
-		appFs: afero.NewOsFs(),
+		appFs: appFs,
 	}
 }
 

@@ -27,7 +27,7 @@ func writeYaml[T any](location string, err error, data T) error {
 	if err != nil {
 		return err
 	}
-	ser := fileutil.NewYamlHelper[T]()
+	ser := fileutil.NewYamlHelper[T](appFs)
 	err = ser.Set(data).Save(location)
 
 	return err
@@ -72,7 +72,7 @@ func configGenCmd(ctx *cli.Context) error {
 	envCfg := model.GenerateEnvironmentConfig(stacks, enclaves, defaultEnclave)
 
 	cl.Info("Exporting files to %v\n", appconfig.DefaultLocation)
-	fh := fileutil.NewFileHelper()
+	fh := fileutil.NewFileHelper(appFs)
 
 	fErr := fh.CreateDirIfNotExist(appconfig.DefaultLocation)
 	if fErr != nil {

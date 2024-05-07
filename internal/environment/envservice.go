@@ -4,17 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"time"
+
+	"github.com/spf13/afero"
 	"github.com/swizzleio/swiz/internal/appconfig"
 	"github.com/swizzleio/swiz/internal/apperr"
 	"github.com/swizzleio/swiz/internal/environment/model"
 	"github.com/swizzleio/swiz/internal/environment/repo"
 	"github.com/swizzleio/swiz/pkg/configutil"
 	"github.com/swizzleio/swiz/pkg/preprocessor"
-	"os"
-	"time"
 )
 
 type EnvService struct {
+	appFs      afero.Fs
 	envRepo    *repo.EnvironmentRepo
 	iacFactory *repo.IacRepoFactory
 }
@@ -23,14 +26,15 @@ const (
 	PollIntervalSec = 5
 )
 
-func NewEnvService(config appconfig.AppConfig) (*EnvService, error) {
-	envRepo := repo.NewEnvironmentRepo(config)
+func NewEnvService(appFs afero.Fs, config appconfig.AppConfig) (*EnvService, error) {
+	envRepo := repo.NewEnvironmentRepo(appFs, config)
 	err := envRepo.Bootstrap()
 	if err != nil {
 		return nil, err
 	}
 
 	return &EnvService{
+		appFs:      appFs,
 		envRepo:    envRepo,
 		iacFactory: repo.NewIacRepoFactory(config),
 	}, nil
@@ -99,7 +103,7 @@ func (s EnvService) DeployEnvironment(ctx context.Context, enclaveName string, e
 
 		// Get outputs
 		for _, stack := range deployList {
-			iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "", "")
+			iacDeploy, iacErr := s.iacFactory.GetDeployer(s.appFs, *enclave, "", "")
 			if iacErr != nil {
 				return nil, iacErr
 			}
@@ -137,7 +141,7 @@ func (s EnvService) DeleteEnvironment(ctx context.Context, enclaveName string, e
 	for _, stackDep := range stackDeps {
 		waitList := make([]string, len(stackDep))
 		for i, stack := range stackDep {
-			iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "", "")
+			iacDeploy, iacErr := s.iacFactory.GetDeployer(s.appFs, *enclave, "", "")
 			if iacErr != nil {
 				return nil, iacErr
 			}
@@ -164,7 +168,7 @@ func (s EnvService) DeleteEnvironment(ctx context.Context, enclaveName string, e
 	// Find orphaned stacks
 	if !noOrphanDelete {
 		// Get list of stacks
-		iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "", "")
+		iacDeploy, iacErr := s.iacFactory.GetDeployer(s.appFs, *enclave, "", "")
 		if iacErr != nil {
 			return nil, iacErr
 		}
@@ -178,7 +182,7 @@ func (s EnvService) DeleteEnvironment(ctx context.Context, enclaveName string, e
 		for _, stack := range stackList {
 			stackName := s.generateStackName(env, envName, stack.Name)
 			if _, ok := stackDeleted[stackName]; !ok {
-				iacDeploy, iacErr = s.iacFactory.GetDeployer(*enclave, "", "")
+				iacDeploy, iacErr = s.iacFactory.GetDeployer(s.appFs, *enclave, "", "")
 				if iacErr != nil {
 					return nil, iacErr
 				}
@@ -212,7 +216,7 @@ func (s EnvService) ListEnvironments(ctx context.Context, enclaveName string, en
 		return nil, err
 	}
 
-	iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "", "")
+	iacDeploy, iacErr := s.iacFactory.GetDeployer(s.appFs, *enclave, "", "")
 	if iacErr != nil {
 		return nil, iacErr
 	}
@@ -227,7 +231,7 @@ func (s EnvService) GetEnvironmentInfo(ctx context.Context, enclaveName string, 
 		return nil, err
 	}
 
-	iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "", "")
+	iacDeploy, iacErr := s.iacFactory.GetDeployer(s.appFs, *enclave, "", "")
 	if iacErr != nil {
 		return nil, iacErr
 	}
@@ -239,7 +243,7 @@ func (s EnvService) upsertStack(ctx context.Context, env *model.EnvironmentConfi
 	var err error
 	var stackInfo *model.StackInfo
 
-	iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "", "")
+	iacDeploy, iacErr := s.iacFactory.GetDeployer(s.appFs, *enclave, "", "")
 	if iacErr != nil {
 		return nil, iacErr
 	}
@@ -314,7 +318,7 @@ func (s EnvService) generateMetadata(envName string, envDef string, enclaveName 
 }
 
 func (s EnvService) waitForStacksComplete(ctx context.Context, enclave *model.Enclave, envName string, stackList []string, state model.State) error {
-	iacDeploy, iacErr := s.iacFactory.GetDeployer(*enclave, "", "") // This will need refactoring when we support multiple IACs
+	iacDeploy, iacErr := s.iacFactory.GetDeployer(s.appFs, *enclave, "", "") // This will need refactoring when we support multiple IACs
 	if iacErr != nil {
 		return iacErr
 	}
