@@ -5,6 +5,7 @@ package functional
 import (
 	"bufio"
 	"fmt"
+	"github.com/lithammer/fuzzysearch/fuzzy"
 	"io"
 	"os"
 	"testing"
@@ -20,9 +21,22 @@ type testResult struct {
 	failureMsg string
 }
 
+type ExpectResponseMatching int
+
+const (
+	Exact ExpectResponseMatching = iota
+	Fuzzy
+)
+
+type ExpectResponse struct {
+	Match    ExpectResponseMatching
+	Output   string
+	Response string
+}
+
 type RunFunctionalTest func(t *testing.T, appFs afero.Fs, resp string)
 
-func RunTestWithMocks(t *testing.T, command []string, expect map[string]string, timeoutSec time.Duration, handler RunFunctionalTest) {
+func RunTestWithMocks(t *testing.T, command []string, expect []ExpectResponse, timeoutSec time.Duration, handler RunFunctionalTest) {
 	// Set up fixture
 	appFs := cmds.SetupFixtures()
 
@@ -71,7 +85,11 @@ func RunTestWithMocks(t *testing.T, command []string, expect map[string]string, 
 }
 
 func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Duration,
-	expect map[string]string, cmdDone chan bool, capturedOutputChan chan testResult) {
+	expect []ExpectResponse, cmdDone chan bool, capturedOutputChan chan testResult) {
+	if expect == nil {
+		expect = []ExpectResponse{}
+	}
+
 	reader := bufio.NewReader(stdout)
 	output := ""
 	cmdRunning := true
@@ -95,16 +113,17 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 			result.failureMsg = "timed out waiting for output"
 			cmdRunning = false
 		default:
-			if len(expect[line]) != 0 {
-				if response, ok := expect[line]; ok {
-					_, err := stdin.Write([]byte(response + "\n"))
-					if err != nil {
+			if len(expect) != 0 {
+				resp, rErr := getExpectResponse(line, expect)
+				if rErr != nil {
+					result.failureMsg = rErr.Error()
+					cmdRunning = false
+				} else {
+					_, wErr := stdin.Write([]byte(resp + "\n"))
+					if wErr != nil {
 						result.failureMsg = "failed to write to stdin"
 						cmdRunning = false
 					}
-				} else {
-					result.failureMsg = "expected " + line + " but got none"
-					cmdRunning = false
 				}
 			}
 		}
@@ -112,4 +131,20 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 
 	result.response = output
 	capturedOutputChan <- result
+}
+
+func getExpectResponse(output string, expect []ExpectResponse) (string, error) {
+	for _, response := range expect {
+		if response.Match == Exact {
+			if response.Output == output {
+				return response.Response, nil
+			}
+		} else if response.Match == Fuzzy {
+			if fuzzy.Match(response.Output, output) {
+				return response.Response, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("response not found from output: %s", output)
 }

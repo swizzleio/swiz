@@ -12,8 +12,7 @@ import (
 
 func TestVersion(t *testing.T) {
 	cmd := []string{"swiz", "version"}
-	expect := map[string]string{}
-	RunTestWithMocks(t, cmd, expect, 2, func(t *testing.T, appFs afero.Fs, resp string) {
+	RunTestWithMocks(t, cmd, nil, 2, func(t *testing.T, appFs afero.Fs, resp string) {
 		assert.Equal(t, "Version is dev(n/a)\n", resp)
 		fmt.Println("Captured Output:", resp)
 	})
