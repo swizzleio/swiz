@@ -8,6 +8,7 @@ import (
 	"github.com/lithammer/fuzzysearch/fuzzy"
 	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -119,7 +120,9 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 					cmdRunning = false
 				} else {
 					if resp.Action == Response {
-						_, wErr := stdin.Write([]byte(resp.Response + "\n"))
+						outResp := strings.TrimSpace(resp.Response) + "\n"
+						_, wErr := stdin.Write([]byte(outResp))
+						output += outResp
 						if wErr != nil {
 							result.failureMsg = "failed to write to stdin"
 							cmdRunning = false

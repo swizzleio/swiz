@@ -5,6 +5,8 @@ package functional
 import (
 	"fmt"
 	"github.com/swizzleio/swiz/cmd/cmds"
+	"github.com/swizzleio/swiz/pkg/fileutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +25,7 @@ func TestConfigGenerateSimple(t *testing.T) {
 		},
 		{
 			Output:   "Enter the AWS account id \n",
-			Response: "012345678901\n",
+			Response: "012345678901",
 		},
 		{
 			Output:   "What region do you want to use for this account \n",
@@ -55,7 +57,36 @@ func TestConfigGenerateSimple(t *testing.T) {
 		},
 	}
 	RunTestWithMocks(t, cmd, expect, 2000, func(t *testing.T, mocks cmds.FixtureMocks, resp string) {
-		assert.Equal(t, "Version is dev(n/a)\n", resp)
-		fmt.Println("Captured Output:", resp)
+		// Get the home directory
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Println("Error getting home directory:", err)
+			return
+		}
+		fh := fileutil.NewFileUrlHelper(mocks.Fs)
+		buf, err := fh.OpenUrlWithBaseDir(homeDir, "file://.swiz/app-config.yaml")
+		assert.NoError(t, err)
+
+		yaml := `version: 1
+default_enclave: NameMe
+naming_scheme: '{{env_name:32}}-{{stack_name:32}}'
+enclave_def:
+    - name: NameMe
+      default_provider: dev-sandbox
+      default_iac: Cloudformation
+      providers:
+        - name: dev-sandbox
+          provider_id: AWS
+          account_id: "012345678901"
+          region: us-east-2
+      env_behavior:
+        deploy_all_stacks: true
+      domain_name: example.com
+      params:
+        Apm: Enabled
+        LogLevel: Debug
+stack_cfg: []
+`
+		assert.Equal(t, yaml, string(buf))
 	})
 }
