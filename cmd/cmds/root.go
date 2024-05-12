@@ -30,7 +30,7 @@ var commands = []*cli.Command{}
 var appCli *cli.App
 
 // CLI
-var cl = appcli.NewCli(nil)
+var cl = appcli.NewCli(nil, nil, nil)
 
 // addCommand adds commands to the list
 func addCommand(cmd *cli.Command) {

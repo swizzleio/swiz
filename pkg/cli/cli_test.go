@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -21,13 +20,11 @@ func getMocks(inputs []string) (mockWrite *bytes.Buffer, mockErr *bytes.Buffer,
 	if inputs == nil {
 		inputs = []string{}
 	}
-	mockRead := strings.NewReader(strings.Join(inputs, "\n") + "\n")
 	mockErr = bytes.NewBufferString("")
 	mockSurvey = &mocksurvey.SurveyWrapper{}
 
 	l = &SwizCli{
 		output: mockWrite,
-		input:  mockRead,
 		err:    mockErr,
 		survey: mockSurvey,
 	}
@@ -315,19 +312,19 @@ func TestSwizCli_AskMany(t *testing.T) {
 			},
 			wantErr: false,
 		},
-			{
-				name: "fail case",
-				argOpt: []AskManyOpts{
-					{
-						Key:           "Foo",
-						Message:       "What is foo?",
-						Required:      false,
-						TransformMode: TransformModeNone,
-					},
+		{
+			name: "fail case",
+			argOpt: []AskManyOpts{
+				{
+					Key:           "Foo",
+					Message:       "What is foo?",
+					Required:      false,
+					TransformMode: TransformModeNone,
 				},
-				want:    nil,
-				wantErr: true,
 			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

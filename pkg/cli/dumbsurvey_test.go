@@ -1,185 +1,39 @@
 package appcli
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddResponse(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    []SurveyResponse
-		expected int
-	}{
-		{
-			name: "Add single response",
-			input: []SurveyResponse{
-				{Prompt: "Test prompt 1", ResponseList: []string{"Response 1"}, NextResponse: 0},
-			},
-			expected: 1,
-		},
-		{
-			name: "Add multiple responses",
-			input: []SurveyResponse{
-				{Prompt: "Test prompt 1", ResponseList: []string{"Response 1"}, NextResponse: 0},
-				{Prompt: "Test prompt 2", ResponseList: []string{"Response 2"}, NextResponse: 0},
-			},
-			expected: 2,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ds := NewDumbSurvey()
-			ds.AddResponses(tt.input)
-			assert.Equal(t, tt.expected, len(ds.responseList))
-		})
-	}
-}
-
-func TestGetPrompts(t *testing.T) {
-	tests := []struct {
-		name     string
-		setup    func() *DumbSurvey
-		prompt   string
-		expected []string
-		err      string
-	}{
-		{
-			name: "Prompt found",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				ds.AddResponse(SurveyResponse{Prompt: "Test", ActualPrompts: []string{"Test 1", "Test 2"}})
-				return ds
-			},
-			prompt:   "Test",
-			expected: []string{"Test 1", "Test 2"},
-			err:      "",
-		},
-		{
-			name: "Prompt not found",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				return ds
-			},
-			prompt:   "Non-existent",
-			expected: []string{},
-			err:      "could not find response",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ds := tt.setup()
-			actual, err := ds.GetPrompts(tt.prompt)
-			if tt.err == "" {
-				assert.NoError(t, err)
-			} else {
-				assert.ErrorContains(t, err, tt.err)
-			}
-			assert.Equal(t, tt.expected, actual)
-		})
-	}
-}
-
 func TestAskOne(t *testing.T) {
-	tests := []struct {
-		name    string
-		setup   func() *DumbSurvey
-		prompt  survey.Prompt
-		wantErr bool
+	cases := []struct {
+		name          string
+		input         string
+		expected      string
+		expectedError bool
 	}{
 		{
-			name: "Successful ask",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				ds.AddResponse(SurveyResponse{Prompt: "Enter your name:", ResponseList: []string{"John Doe"}, NextResponse: 0})
-				return ds
-			},
-			prompt:  &survey.Input{Message: "Enter your name:"},
-			wantErr: false,
-		},
-		{
-			name: "Prompt not found",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				return ds
-			},
-			prompt:  &survey.Input{Message: "Enter your age:"},
-			wantErr: true,
+			name:          "basic input",
+			input:         "example input\n",
+			expected:      "example input",
+			expectedError: false,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ds := tt.setup()
-			var resp string
-			err := ds.AskOne(tt.prompt, &resp)
-			if tt.wantErr {
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := bytes.NewBufferString(tc.input)
+			ds := NewDumbSurvey(input, nil)
+			var response string
+			err := ds.AskOne(&survey.Input{Message: "Please input:"}, &response)
+			assert.Equal(t, tc.expected, response)
+			if tc.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, "John Doe", resp)
-			}
-		})
-	}
-}
-
-func TestAsk(t *testing.T) {
-	tests := []struct {
-		name      string
-		setup     func() *DumbSurvey
-		questions []*survey.Question
-		expected  map[string]interface{}
-		wantErr   bool
-	}{
-		{
-			name: "Successful multiple asks",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				ds.AddResponses([]SurveyResponse{
-					{Prompt: "Name", ResponseList: []string{"Alice"}, NextResponse: 0},
-					{Prompt: "Age", ResponseList: []string{"30"}, NextResponse: 0},
-				})
-				return ds
-			},
-			questions: []*survey.Question{
-				{Name: "name", Prompt: &survey.Input{Message: "Name"}},
-				{Name: "age", Prompt: &survey.Input{Message: "Age"}},
-			},
-			expected: map[string]interface{}{"name": "Alice", "age": "30"},
-			wantErr:  false,
-		},
-		{
-			name: "One question prompt not found",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				ds.AddResponses([]SurveyResponse{
-					{Prompt: "Name", ResponseList: []string{"Bob"}, NextResponse: 0},
-				})
-				return ds
-			},
-			questions: []*survey.Question{
-				{Name: "name", Prompt: &survey.Input{Message: "Name"}},
-				{Name: "age", Prompt: &survey.Input{Message: "Age"}},
-			},
-			expected: nil,
-			wantErr:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ds := tt.setup()
-			response := make(map[string]interface{})
-			err := ds.Ask(tt.questions, &response)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.expected, response)
 			}
 		})
 	}
@@ -216,91 +70,56 @@ func TestGetStringFromPrompt(t *testing.T) {
 	}
 }
 
-func TestGetResponseObj(t *testing.T) {
-	tests := []struct {
-		name     string
-		setup    func() *DumbSurvey
-		prompt   string
-		expected *SurveyResponse
-		wantErr  bool
+func TestAsk(t *testing.T) {
+	cases := []struct {
+		name          string
+		questions     []*survey.Question
+		input         string
+		expected      map[string]interface{}
+		expectedError bool
 	}{
 		{
-			name: "Find exact match",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				ds.AddResponse(SurveyResponse{Prompt: "Location?", ResponseList: []string{"New York"}, NextResponse: 0})
-				return ds
+			name: "single question",
+			questions: []*survey.Question{
+				{
+					Name:   "name",
+					Prompt: &survey.Input{Message: "What is your name?"},
+				},
 			},
-			prompt:   "Location?",
-			expected: &SurveyResponse{Prompt: "Location?", ResponseList: []string{"New York"}, NextResponse: 0},
-			wantErr:  false,
+			input:         "John\n",
+			expected:      map[string]interface{}{"name": "John"},
+			expectedError: false,
 		},
 		{
-			name: "Prompt not found",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				return ds
+			name: "multiple questions",
+			questions: []*survey.Question{
+				{
+					Name:   "name",
+					Prompt: &survey.Input{Message: "What is your name?"},
+				},
+				{
+					Name:   "age",
+					Prompt: &survey.Input{Message: "What is your age?"},
+				},
 			},
-			prompt:   "Location?",
-			expected: nil,
-			wantErr:  true,
+			input:         "John\n25\n",
+			expected:      map[string]interface{}{"name": "John", "age": "25"},
+			expectedError: false,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ds := tt.setup()
-			result, err := ds.getResponseObj(tt.prompt)
-			if tt.wantErr {
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			input := bytes.NewBufferString(tc.input)
+			ds := NewDumbSurvey(input, nil)
+			response := make(map[string]interface{})
+			err := ds.Ask(tc.questions, &response)
+
+			if tc.expectedError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.expected, result)
-			}
-		})
-	}
-}
-
-func TestGetResponse(t *testing.T) {
-	tests := []struct {
-		name     string
-		setup    func() *DumbSurvey
-		prompt   string
-		expected string
-		wantErr  bool
-	}{
-		{
-			name: "Get valid response",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				ds.AddResponse(SurveyResponse{Prompt: "Favorite color?", ResponseList: []string{"Blue", "Red"}, NextResponse: 0})
-				return ds
-			},
-			prompt:   "Favorite color?",
-			expected: "Blue",
-			wantErr:  false,
-		},
-		{
-			name: "Prompt not found",
-			setup: func() *DumbSurvey {
-				ds := NewDumbSurvey()
-				return ds
-			},
-			prompt:   "Favorite color?",
-			expected: "",
-			wantErr:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ds := tt.setup()
-			result, err := ds.getResponse(tt.prompt)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.expected, result)
+				assert.Equal(t, tc.expected, response)
 			}
 		})
 	}

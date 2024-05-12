@@ -29,7 +29,7 @@ func NewDummyDeployRepo(config appconfig.AppConfig, enclave model.Enclave, provi
 		envs:    map[string]*model.EnvironmentInfo{},
 		stacks:  map[string]*DummyStack{},
 		enclave: enclave,
-		cl:      appcli.NewCli(nil),
+		cl:      appcli.NewCli(nil, nil, nil),
 	}
 }
 

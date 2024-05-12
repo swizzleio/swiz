@@ -13,7 +13,6 @@ import (
 
 type SwizCli struct {
 	output io.Writer
-	input  io.Reader
 	err    io.Writer
 	survey SurveyWrapper
 }
@@ -46,11 +45,15 @@ type SwizClier interface {
 }
 
 // NewCli creates a new cli
-func NewCli(sw SurveyWrapper) SwizClier {
+func NewCli(sw SurveyWrapper, output io.Writer, err io.Writer) SwizClier {
 	if sw == nil {
 		sw = &SurveyWrap{}
 	}
-	return &SwizCli{survey: sw}
+	return &SwizCli{
+		survey: sw,
+		output: output,
+		err:    err,
+	}
 }
 
 // Info outputs an informational message

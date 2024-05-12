@@ -4,70 +4,49 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/lithammer/fuzzysearch/fuzzy"
+	"io"
+	"io/fs"
 	"os"
+	"strings"
 )
 
-// This provides a more testable version of survey, instead of smart prompting, it just uses a scanner
-
-type SurveyResponse struct {
-	Prompt           string
-	ResponseList     []string
-	NextResponse     int
-	FuzzyPromptMatch bool
-	ActualPrompts    []string
-}
-
 type DumbSurvey struct {
-	scanner      *bufio.Reader
-	responseList []SurveyResponse
+	input  *bufio.Reader
+	output io.Writer
 }
 
-func NewDumbSurvey() *DumbSurvey {
+func NewDumbSurvey(input io.Reader, output io.Writer) *DumbSurvey {
+	if input == nil {
+		input = os.Stdin
+	}
+	if output == nil {
+		output = os.Stdout
+	}
+
 	return &DumbSurvey{
-		scanner:      bufio.NewReader(os.Stdin),
-		responseList: []SurveyResponse{},
+		input:  bufio.NewReader(input),
+		output: output,
 	}
-}
-
-func (d *DumbSurvey) AddResponses(responses []SurveyResponse) {
-	for _, resp := range responses {
-		_, err := d.getResponse(resp.Prompt)
-		if err != nil {
-			// Only add if the prompt is not there
-			d.responseList = append(d.responseList, resp)
-		}
-	}
-}
-
-func (d *DumbSurvey) AddResponse(response SurveyResponse) {
-	d.AddResponses([]SurveyResponse{response})
-}
-
-func (d DumbSurvey) GetPrompts(prompt string) ([]string, error) {
-	resp, err := d.getResponseObj(prompt)
-	if err != nil {
-		return []string{}, err
-	}
-
-	return resp.ActualPrompts, nil
 }
 
 // AskOne is a wrapper for the survey.AskOne() func
 func (d *DumbSurvey) AskOne(p survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
 	prompt := getStringFromPrompt(p)
-	//fmt.Printf("%v ", prompt)
+	_, oErr := fmt.Fprintf(d.output, "%v \n", prompt)
+	if oErr != nil {
+		return oErr
+	}
 
-	resp, err := d.getResponse(prompt)
+	resp, err := d.input.ReadString('\n')
 	if err != nil {
-		return err
+		if _, ok := err.(*fs.PathError); !ok {
+			// Only return if it's not a path error
+			return err
+		}
 	}
 
 	pResponse := response.(*string)
-	*pResponse = resp
-
-	//strReader := strings.NewReader("dev-sandbox\n012345678901\nus-east-2\nexample.com\nLogLevel,Apm\nDebug\nEnabled\n\n\n")
-	//fmt.Println(resp)
+	*pResponse = strings.TrimSpace(resp)
 
 	return nil
 }
@@ -106,41 +85,4 @@ func getStringFromPrompt(prompt survey.Prompt) string {
 	}
 
 	return resp
-}
-
-func (d *DumbSurvey) getResponseObj(prompt string) (*SurveyResponse, error) {
-	var resp *SurveyResponse
-	var err error
-	found := false
-	for _, r := range d.responseList {
-		if r.FuzzyPromptMatch && fuzzy.Match(prompt, r.Prompt) {
-			resp = &r
-			found = true
-		} else if prompt == r.Prompt {
-			resp = &r
-			found = true
-		}
-
-		if found {
-			break
-		}
-	}
-
-	if !found {
-		err = fmt.Errorf("could not find response")
-	}
-
-	return resp, err
-}
-
-func (d *DumbSurvey) getResponse(prompt string) (string, error) {
-	resp, err := d.getResponseObj(prompt)
-	if err != nil {
-		return "", err
-	}
-
-	respStr := resp.ResponseList[resp.NextResponse]
-	resp.NextResponse = (resp.NextResponse + 1) % len(resp.ResponseList)
-
-	return respStr, err
 }

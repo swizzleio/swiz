@@ -104,7 +104,7 @@ func getDefaultEnclave(enclaveNames []string) (string, error) {
 		return enclaveNames[0], nil
 	}
 
-	defaultEnclave, err := cl.AskOptions("Which enclave should be the default?", enclaveNames)
+	defaultEnclave, err := cl.AskOptions("Which enclave should be the default", enclaveNames)
 	if err != nil {
 		return "", err
 	}
@@ -198,7 +198,7 @@ func getCoreConfig() (*coreConfig, error) {
 	qs := []appcli.AskManyOpts{
 		{
 			Key:           "DomainName",
-			Message:       "What domain name do you want to use for this environment?",
+			Message:       "What domain name do you want to use for this environment",
 			TransformMode: appcli.TransformModeTrimSpace,
 		},
 
@@ -261,13 +261,13 @@ func getAwsConfig() ([]awswrap.AwsConfig, error) {
 
 			{
 				Key:           "Region",
-				Message:       "What region do you want to use for this account?",
+				Message:       "What region do you want to use for this account",
 				TransformMode: appcli.TransformModeTrimSpace,
 			},
 		}
 
-		resp, err := cl.AskMany(qs)
-		if err != nil {
+		resp, askErr := cl.AskMany(qs)
+		if askErr != nil {
 			return nil, err
 		}
 
