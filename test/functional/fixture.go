@@ -28,10 +28,18 @@ const (
 	Fuzzy
 )
 
+type ExpectResponseAction int
+
+const (
+	Response ExpectResponseAction = iota
+	NoAction
+)
+
 type ExpectResponse struct {
 	Match    ExpectResponseMatching
 	Output   string
 	Response string
+	Action   ExpectResponseAction
 }
 
 type RunFunctionalTest func(t *testing.T, appFs afero.Fs, resp string)
@@ -96,7 +104,7 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 	timeout := time.After(timeoutSec * time.Second)
 	result := testResult{}
 	for cmdRunning {
-		line, err := reader.ReadString('\n') // TODO: Dumbsurvey may need to append a \n to every question
+		line, err := reader.ReadString('\n')
 		if err != nil {
 			if err != io.EOF {
 				result.failureMsg = fmt.Sprintf("error reading stdout: %s", err)
@@ -119,10 +127,12 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 					result.failureMsg = rErr.Error()
 					cmdRunning = false
 				} else {
-					_, wErr := stdin.Write([]byte(resp + "\n"))
-					if wErr != nil {
-						result.failureMsg = "failed to write to stdin"
-						cmdRunning = false
+					if resp.Action == Response {
+						_, wErr := stdin.Write([]byte(resp.Response + "\n"))
+						if wErr != nil {
+							result.failureMsg = "failed to write to stdin"
+							cmdRunning = false
+						}
 					}
 				}
 			}
@@ -133,18 +143,18 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 	capturedOutputChan <- result
 }
 
-func getExpectResponse(output string, expect []ExpectResponse) (string, error) {
+func getExpectResponse(output string, expect []ExpectResponse) (ExpectResponse, error) {
 	for _, response := range expect {
 		if response.Match == Exact {
 			if response.Output == output {
-				return response.Response, nil
+				return response, nil
 			}
 		} else if response.Match == Fuzzy {
 			if fuzzy.Match(response.Output, output) {
-				return response.Response, nil
+				return response, nil
 			}
 		}
 	}
 
-	return "", fmt.Errorf("response not found from output: %s", output)
+	return ExpectResponse{}, fmt.Errorf("response not found from output: %s", output)
 }
