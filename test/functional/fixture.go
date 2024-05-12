@@ -3,7 +3,7 @@
 package functional
 
 import (
-	"bytes"
+	"bufio"
 	"io"
 	"os"
 	"testing"
@@ -15,51 +15,66 @@ import (
 
 type RunFunctionalTest func(t *testing.T, appFs afero.Fs, resp string)
 
-func RunTestWithMocks(t *testing.T, command []string, handler RunFunctionalTest) {
+func RunTestWithMocks(t *testing.T, command []string, expect map[string]string, handler RunFunctionalTest) {
 	appFs := cmds.SetupFixtures()
 
-	// Create pipes
-	stdinR, stdinW, _ := os.Pipe()
-	stdoutR, stdoutW, _ := os.Pipe()
+	stdinR, stdinW, err := os.Pipe()
+	assert.NoError(t, err)
+	stdoutR, stdoutW, err := os.Pipe()
+	assert.NoError(t, err)
 
-	// Backup original stdin and stdout
 	origStdin := os.Stdin
 	origStdout := os.Stdout
 
-	// Redirect stdin and stdout
 	os.Stdin = stdinR
 	os.Stdout = stdoutW
 
-	// Prepare to capture output
-	outputC := make(chan string)
-	go func() {
-		var buf bytes.Buffer
-		_, err := io.Copy(&buf, stdoutR)
-		assert.NoError(t, err)
-		outputC <- buf.String()
-	}()
+	cmdDone := make(chan bool)
+	capturedOutputChan := make(chan string)
 
-	// Provide input
-	input := ""
-	go func() {
-		_, err := stdinW.Write([]byte(input))
-		assert.NoError(t, err)
-		assert.NoError(t, stdinW.Close())
-	}()
+	go handleStdout(t, stdoutR, stdinW, expect, cmdDone, capturedOutputChan)
 
 	os.Args = command
 
-	// Run the command
-	ret := cmds.Execute()
-	assert.Equal(t, 0, ret)
+	cmds.Execute()
+	assert.NoError(t, stdoutW.Close()) // Close writer to signal EOF to stdoutR
+	cmdDone <- true                    // Signal command completion
 
-	// Clean up
-	assert.NoError(t, stdoutW.Close())
+	capturedOutput := <-capturedOutputChan
+
 	os.Stdin = origStdin
 	os.Stdout = origStdout
+	assert.NoError(t, stdinR.Close())
+	assert.NoError(t, stdinW.Close())
+	assert.NoError(t, stdoutR.Close())
 
-	// Get the captured output. Hangs here...
-	capturedOutput := <-outputC
+	ret := 0 // Mock return from cmds.Execute()
 
 	handler(t, appFs, capturedOutput)
+
+	assert.Equal(t, 0, ret)
+	close(capturedOutputChan)
+	close(cmdDone)
+}
+
+func handleStdout(t *testing.T, stdout io.ReadCloser, stdin io.WriteCloser, expect map[string]string, cmdDone chan bool, capturedOutputChan chan string) {
+	scanner := bufio.NewScanner(stdout)
+	output := ""
+	cmdRunning := true
+	for scanner.Scan() && cmdRunning {
+		line := scanner.Text()
+		output += line
+
+		select {
+		case <-cmdDone:
+			cmdRunning = false
+		default:
+			if response, ok := expect[line]; ok {
+				_, err := stdin.Write([]byte(response + "\n"))
+				assert.NoError(t, err)
+			}
+		}
+	}
+
+	capturedOutputChan <- output
 }
