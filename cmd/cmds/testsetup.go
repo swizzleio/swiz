@@ -6,14 +6,22 @@ import (
 	"github.com/spf13/afero"
 	"github.com/swizzleio/swiz/internal/appconfig"
 	appcli "github.com/swizzleio/swiz/pkg/cli"
+	"io"
 )
+
+type FixtureMocks struct {
+	Fs afero.Fs
+}
 
 // SetupFixtures configures the app for a functional test environment but mocks things
 // like the OS and provides CLI output that is simplified for testability
-func SetupFixtures() afero.Fs {
-	cl = appcli.NewCli(appcli.NewDumbSurvey(nil, nil))
+func SetupFixtures(input io.Reader, output io.Writer) FixtureMocks {
+	ds := appcli.NewDumbSurvey(input, output)
+	cl = appcli.NewCli(ds, output, output)
 	appFs = afero.NewMemMapFs()
 	appConfigMgr = appconfig.NewManage(appFs)
 
-	return appFs
+	return FixtureMocks{
+		Fs: appFs,
+	}
 }

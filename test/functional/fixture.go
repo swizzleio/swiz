@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/swizzleio/swiz/cmd/cmds"
 )
@@ -42,23 +41,17 @@ type ExpectResponse struct {
 	Action   ExpectResponseAction
 }
 
-type RunFunctionalTest func(t *testing.T, appFs afero.Fs, resp string)
+type RunFunctionalTest func(t *testing.T, mocks cmds.FixtureMocks, resp string)
 
 func RunTestWithMocks(t *testing.T, command []string, expect []ExpectResponse, timeoutSec time.Duration, handler RunFunctionalTest) {
-	// Set up fixture
-	appFs := cmds.SetupFixtures()
-
 	// Set up pipes
 	stdinR, stdinW, err := os.Pipe()
 	assert.NoError(t, err)
 	stdoutR, stdoutW, err := os.Pipe()
 	assert.NoError(t, err)
 
-	origStdin := os.Stdin
-	origStdout := os.Stdout
-
-	os.Stdin = stdinR
-	os.Stdout = stdoutW
+	// Set up fixture
+	mocks := cmds.SetupFixtures(stdinR, stdoutW)
 
 	// Start up output monitoring
 	cmdDone := make(chan bool, 1)
@@ -79,8 +72,6 @@ func RunTestWithMocks(t *testing.T, command []string, expect []ExpectResponse, t
 	capturedOutput := <-capturedOutputChan
 
 	// Clean up
-	os.Stdin = origStdin
-	os.Stdout = origStdout
 	assert.NoError(t, stdinR.Close())
 	assert.NoError(t, stdinW.Close())
 	assert.NoError(t, stdoutR.Close())
@@ -89,7 +80,7 @@ func RunTestWithMocks(t *testing.T, command []string, expect []ExpectResponse, t
 	if capturedOutput.failureMsg != "" {
 		assert.Failf(t, capturedOutput.failureMsg, capturedOutput.response)
 	}
-	handler(t, appFs, capturedOutput.response)
+	handler(t, mocks, capturedOutput.response)
 }
 
 func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Duration,
