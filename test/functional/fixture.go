@@ -25,6 +25,7 @@ type ExpectResponseMatching int
 
 const (
 	Exact ExpectResponseMatching = iota
+	ExactOnce
 	Fuzzy
 )
 
@@ -40,11 +41,12 @@ type ExpectResponse struct {
 	Output   string
 	Response string
 	Action   ExpectResponseAction
+	used     bool
 }
 
 type RunFunctionalTest func(t *testing.T, mocks cmds.FixtureMocks, resp string)
 
-func RunTestWithMocks(t *testing.T, command []string, expect []ExpectResponse, timeoutSec time.Duration, handler RunFunctionalTest) {
+func RunTestWithMocks(t *testing.T, command []string, expect []*ExpectResponse, timeoutSec time.Duration, handler RunFunctionalTest) {
 	// Set up pipes
 	stdinR, stdinW, err := os.Pipe()
 	assert.NoError(t, err)
@@ -85,9 +87,9 @@ func RunTestWithMocks(t *testing.T, command []string, expect []ExpectResponse, t
 }
 
 func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Duration,
-	expect []ExpectResponse, cmdDone chan bool, capturedOutputChan chan testResult) {
+	expect []*ExpectResponse, cmdDone chan bool, capturedOutputChan chan testResult) {
 	if expect == nil {
-		expect = []ExpectResponse{}
+		expect = []*ExpectResponse{}
 	}
 
 	reader := bufio.NewReader(stdout)
@@ -137,18 +139,33 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 	capturedOutputChan <- result
 }
 
-func getExpectResponse(output string, expect []ExpectResponse) (ExpectResponse, error) {
+func getExpectResponse(output string, expect []*ExpectResponse) (ExpectResponse, error) {
+	var resp *ExpectResponse
 	for _, response := range expect {
-		if response.Match == Exact {
+		if response.used {
+			continue
+		}
+
+		if response.Match == Exact || response.Match == ExactOnce {
 			if response.Output == output {
-				return response, nil
+				resp = response
+				break
 			}
 		} else if response.Match == Fuzzy {
 			if fuzzy.Match(response.Output, output) {
-				return response, nil
+				resp = response
+				break
 			}
 		}
 	}
 
-	return ExpectResponse{}, fmt.Errorf("response not found from output: %s", output)
+	if resp == nil {
+		return ExpectResponse{}, fmt.Errorf("response not found from output: %s", output)
+	}
+
+	if resp.Match == ExactOnce {
+		resp.used = true
+	}
+
+	return *resp, nil
 }
