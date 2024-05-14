@@ -19,7 +19,14 @@ func init() {
 		Name:   "generate",
 		Usage:  "Generate the app config and stack config",
 		Action: configGenCmd,
-		Flags:  []cli.Flag{},
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "output",
+				Aliases:     []string{"o"},
+				Usage:       "Location to output file to",
+				DefaultText: "",
+			},
+		},
 	})
 }
 
@@ -34,6 +41,11 @@ func writeYaml[T any](location string, err error, data T) error {
 }
 
 func configGenCmd(ctx *cli.Context) error {
+	output := ctx.String("output")
+	if output == "" {
+		output = appconfig.DefaultLocation
+	}
+
 	// Parse AWS accounts
 	awsAccts, err := getAwsConfig()
 	if err != nil {
@@ -71,19 +83,19 @@ func configGenCmd(ctx *cli.Context) error {
 
 	envCfg := model.GenerateEnvironmentConfig(stacks, enclaves, defaultEnclave)
 
-	cl.Info("Exporting files to %v\n", appconfig.DefaultLocation)
+	cl.Info("Exporting files to %v\n", output)
 	fh := fileutil.NewFileHelper(appFs)
 
-	fErr := fh.CreateDirIfNotExist(appconfig.DefaultLocation)
+	fErr := fh.CreateDirIfNotExist(output)
 	if fErr != nil {
 		return fErr
 	}
 
-	serErr := writeYaml[appconfig.AppConfig](appconfig.DefaultLocation, nil, *cfg.AppConfig)
+	serErr := writeYaml[appconfig.AppConfig](output, nil, *cfg.AppConfig)
 	if serErr != nil {
 		return serErr
 	}
-	serErr = writeYaml[model.EnvironmentConfig](appconfig.DefaultLocation, serErr, envCfg)
+	serErr = writeYaml[model.EnvironmentConfig](output, serErr, envCfg)
 	if serErr != nil {
 		return serErr
 	}
