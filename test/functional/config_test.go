@@ -230,7 +230,7 @@ func TestConfigGenerateMinimal(t *testing.T) {
 			return
 		}
 		fh := fileutil.NewFileUrlHelper(mocks.Fs)
-		buf, err := fh.OpenUrlWithBaseDir(homeDir, "file://.swiz/app-config.yaml")
+		buf, err := fh.OpenUrlWithBaseDir(homeDir, "file://.swiz/env-def.yaml")
 		assert.NoError(t, err)
 
 		y, err := NewYamlTestUtil(string(buf))
@@ -296,3 +296,5 @@ func TestConfigGenerateCustomLocation(t *testing.T) {
 		y.AssertEqual(t, "NameMe", "default_enclave")
 	})
 }
+
+// TODO: Test overwrite and appconfig creation

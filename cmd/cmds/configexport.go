@@ -25,7 +25,7 @@ func configExportCmd(ctx *cli.Context) error {
 	}
 
 	cl.Info("This output can be used to share the app config with developers. The signature and word list are\n")
-	cl.Info("used to verify the integrity of the app config and crytographically the same.\n\n")
+	cl.Info("used to verify the integrity of the app config and cryptographically the same.\n\n")
 	cl.Info("App config: %v\n", out.Encoded)
 	cl.Info("Signature: %v\n", out.Signature)
 	cl.Info("Word list: %v\n", out.WordList)

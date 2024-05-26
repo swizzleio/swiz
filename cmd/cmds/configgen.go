@@ -26,6 +26,11 @@ func init() {
 				Usage:       "Location to output file to",
 				DefaultText: "",
 			},
+			&cli.BoolFlag{
+				Name:  "force",
+				Value: false,
+				Usage: "Force overwrite of files",
+			},
 		},
 	})
 }
@@ -42,8 +47,30 @@ func writeYaml[T any](location string, err error, data T) error {
 
 func configGenCmd(ctx *cli.Context) error {
 	output := ctx.String("output")
-	if output == "" {
-		output = appconfig.DefaultLocation
+	force := ctx.Bool("force")
+	appConfigOut := appconfig.DefaultLocation
+	configOut := filepath.Join(appconfig.DefaultSwizDir, EnvDefFileName)
+	if output != "" {
+		appConfigOut = filepath.Join(output, appconfig.DefaultFileName)
+		configOut = filepath.Join(output, EnvDefFileName)
+	} else {
+		output = appconfig.DefaultSwizDir
+	}
+
+	fh := fileutil.NewFileHelper(appFs)
+
+	// Check to see if file exists
+	if !force {
+		fileList := []string{appConfigOut, configOut}
+		for _, fileName := range fileList {
+			exists, err := fh.FileExists(fileName)
+			if err != nil {
+				return err
+			}
+			if exists {
+				return fmt.Errorf("file %s already exists, use --force to overwrite", fileName)
+			}
+		}
 	}
 
 	// Parse AWS accounts
@@ -84,18 +111,17 @@ func configGenCmd(ctx *cli.Context) error {
 	envCfg := model.GenerateEnvironmentConfig(stacks, enclaves, defaultEnclave)
 
 	cl.Info("Exporting files to %v\n", output)
-	fh := fileutil.NewFileHelper(appFs)
 
 	fErr := fh.CreateDirIfNotExist(output)
 	if fErr != nil {
 		return fErr
 	}
 
-	serErr := writeYaml[appconfig.AppConfig](output, nil, *cfg.AppConfig)
+	serErr := writeYaml[appconfig.AppConfig](appConfigOut, nil, *cfg.AppConfig)
 	if serErr != nil {
 		return serErr
 	}
-	serErr = writeYaml[model.EnvironmentConfig](output, serErr, envCfg)
+	serErr = writeYaml[model.EnvironmentConfig](configOut, serErr, envCfg)
 	if serErr != nil {
 		return serErr
 	}

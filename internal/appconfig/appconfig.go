@@ -1,14 +1,15 @@
 package appconfig
 
 import (
-	"fmt"
+	"github.com/spf13/afero"
 	"github.com/swizzleio/swiz/pkg/configutil"
 	"github.com/swizzleio/swiz/pkg/fileutil"
-	"github.com/spf13/afero"
+	"path/filepath"
 )
 
 var DefaultFileName = "app-config.yaml"
-var DefaultLocation = fmt.Sprintf("file://~/.swiz/%v", DefaultFileName)
+var DefaultSwizDir = "file://~/.swiz"
+var DefaultLocation = filepath.Join(DefaultSwizDir, DefaultFileName)
 var DefaultOutLocation = "file://./out"
 
 type EnvDef struct {
@@ -25,7 +26,7 @@ type AppConfig struct {
 }
 
 type Manage struct {
-	appFs afero.Fs
+	appFs    afero.Fs
 	ser      fileutil.SerializeHelper[AppConfig]
 	fh       fileutil.FileHelper
 	isLoaded bool
@@ -34,8 +35,8 @@ type Manage struct {
 func NewManage(appFs afero.Fs) *Manage {
 	return &Manage{
 		appFs: appFs,
-		ser: fileutil.NewYamlHelper[AppConfig](appFs),
-		fh:  fileutil.NewFileHelper(appFs),
+		ser:   fileutil.NewYamlHelper[AppConfig](appFs),
+		fh:    fileutil.NewFileHelper(appFs),
 	}
 }
 

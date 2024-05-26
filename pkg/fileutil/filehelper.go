@@ -9,6 +9,7 @@ import (
 //go:generate mockery --name FileHelper --filename filehelper_mock.go --output ../../mocks/pkg/fileutil --outpkg mockfileutil
 type FileHelper interface {
 	CreateDirIfNotExist(location string) error
+	FileExists(location string) (bool, error)
 }
 
 type FileHelp struct {
@@ -24,6 +25,10 @@ func NewFileHelper(appFs afero.Fs) FileHelper {
 		fh:    NewFileUrlHelper(appFs),
 		appFs: appFs,
 	}
+}
+
+func (f FileHelp) FileExists(location string) (bool, error) {
+	return afero.Exists(f.appFs, location)
 }
 
 func (f FileHelp) CreateDirIfNotExist(location string) error {
