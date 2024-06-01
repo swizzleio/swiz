@@ -19,7 +19,7 @@ type StackConfigDef struct {
 type EnvironmentConfig struct {
 	EnvDefName        string                  `yaml:"-"`
 	Version           int                     `yaml:"version"`
-	DefaultEnclave    string                  `yaml:"default_enclave"` // This will eventually be an enclave or grouping of enclaves
+	DefaultEnclave    string                  `yaml:"default_enclave"`
 	NamingScheme      string                  `yaml:"naming_scheme"`
 	EnclaveDefinition []Enclave               `yaml:"enclave_def"`
 	StackCfgDef       []StackConfigDef        `yaml:"stack_cfg"`
