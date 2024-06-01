@@ -54,6 +54,7 @@ func init() {
 
 func envCreateCmd(ctx *cli.Context) error {
 	enclave := ctx.String("enclave")
+	// Eventually a construct for an enclave grouping will be created for multi enclave support
 	envDef := ctx.String("env-def")
 	envName := ctx.String("name")
 	stacks := ctx.StringSlice("stack")
