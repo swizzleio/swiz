@@ -49,12 +49,19 @@ func configGenCmd(ctx *cli.Context) error {
 	output := ctx.String("output")
 	force := ctx.Bool("force")
 	appConfigOut := appconfig.DefaultLocation
-	configOut := filepath.Join(appconfig.DefaultSwizDir, EnvDefFileName)
+	appConfigOutDir := appconfig.DefaultSwizDir
+	configOut := fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName)
+	configOutDir := appconfig.DefaultOutLocation
+
 	if output != "" {
-		appConfigOut = filepath.Join(output, appconfig.DefaultFileName)
-		configOut = filepath.Join(output, EnvDefFileName)
-	} else {
-		output = appconfig.DefaultSwizDir
+		if output[len(output)-1] != '/' {
+			output += "/"
+		}
+
+		appConfigOut = fmt.Sprintf("%v/%v", output, appconfig.DefaultFileName)
+		configOut = fmt.Sprintf("%v%v", output, EnvDefFileName)
+		appConfigOutDir = output
+		configOutDir = output
 	}
 
 	fh := fileutil.NewFileHelper(appFs)
@@ -79,7 +86,7 @@ func configGenCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	cfg, cfgErr := getCoreConfig()
+	cfg, cfgErr := getCoreConfig(configOut)
 	if cfgErr != nil {
 		return cfgErr
 	}
@@ -110,9 +117,17 @@ func configGenCmd(ctx *cli.Context) error {
 
 	envCfg := model.GenerateEnvironmentConfig(stacks, enclaves, defaultEnclave)
 
-	cl.Info("Exporting files to %v\n", output)
+	cl.Info("Exporting app config to %v\n", appConfigOut)
+	cl.Info("Exporting environment definition to %v\n", configOut)
+	if output != "" {
+		cl.Info("The app config file should be place in the %v directory\n", appconfig.DefaultSwizDir)
+	}
 
-	fErr := fh.CreateDirIfNotExist(output)
+	fErr := fh.CreateDirIfNotExist(appConfigOutDir)
+	if fErr != nil {
+		return fErr
+	}
+	fErr = fh.CreateDirIfNotExist(configOutDir)
 	if fErr != nil {
 		return fErr
 	}
@@ -155,7 +170,7 @@ func getEnclaves(cfg *coreConfig, awsAccts []awswrap.AwsConfig, paramMap map[str
 	enclaveNames := []string{}
 	counter := 0
 	for _, acct := range awsAccts {
-		pv, err := cl.Ask(fmt.Sprintf("Name the enclave that AWS account %v will be part of (leave blank to ignore)", acct.Profile), false)
+		pv, err := cl.Ask(fmt.Sprintf("Name the enclave that AWS account %v will be part of. An enclave refers to production, development, test environments (leave blank to ignore)", acct.Profile), false)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -232,14 +247,18 @@ type coreConfig struct {
 	AppConfig    *appconfig.AppConfig
 }
 
-func getCoreConfig() (*coreConfig, error) {
+func getCoreConfig(envDefLoc string) (*coreConfig, error) {
 	qs := []appcli.AskManyOpts{
 		{
 			Key:           "DomainName",
 			Message:       "What domain name do you want to use for this environment",
 			TransformMode: appcli.TransformModeTrimSpace,
 		},
-
+		{
+			Key:           "EnvName",
+			Message:       "What to you want to name this environment (leave blank to ignore)",
+			TransformMode: appcli.TransformModeTrimSpace,
+		},
 		{
 			Key:           "GlobalParams",
 			Message:       "Specify a comma seperated list for any global parameters (i.e. LogLevel,VpcId)",
@@ -260,7 +279,7 @@ func getCoreConfig() (*coreConfig, error) {
 
 	answers.AppConfig = appConfigMgr.GenFromEnv(appconfig.EnvDef{
 		Name:       answers.EnvName,
-		EnvDefFile: fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName),
+		EnvDefFile: envDefLoc,
 	})
 
 	return &answers, nil
