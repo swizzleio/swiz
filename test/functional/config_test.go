@@ -345,4 +345,113 @@ func TestConfigGenerateCustomLocation(t *testing.T) {
 	y.AssertEqual(t, "NameMe", "default_enclave")
 }
 
-// TODO: Test overwrite and appconfig creation
+func TestConfigGenerateScan(t *testing.T) {
+	cmd := []string{"swiz", "config", "generate"}
+	expect := []*ExpectResponse{
+		{
+			Output: "Scanning for AWS accounts...\n",
+			Action: NoAction,
+		},
+		{
+			Output:   "What domain name do you want to use for this environment \n",
+			Response: "example.com",
+		},
+		{
+			Output:   "What to you want to name this environment (leave blank to ignore) \n",
+			Response: "Swizzle",
+		},
+		{
+			Output:   "Specify a comma seperated list for any global parameters (i.e. LogLevel,VpcId) \n",
+			Response: "LogLevel,Apm",
+		},
+		{
+			Output:   "Provide a value for the global parameter LogLevel \n",
+			Response: "Debug",
+		},
+		{
+			Output:   "Provide a value for the global parameter Apm \n",
+			Response: "Enabled",
+		},
+		{
+			Output:   "Enter the filename of the IaC template for your stack (leave blank to exit): \n",
+			Response: "",
+		},
+		{
+			Output:   "Name the enclave that AWS account MS-TRAIN-AWS-DEVELOPMENT will be part of. An enclave refers to production, development, test environments (leave blank to ignore) \n",
+			Response: "dev",
+		},
+		{
+			Output:   "Name the enclave that AWS account MC-TRAIN-AWS-PROD will be part of. An enclave refers to production, development, test environments (leave blank to ignore) \n",
+			Response: "prod",
+		},
+		{
+			Output:   "Name the enclave that AWS account MS-TRAIN-AWS-GENERAL will be part of. An enclave refers to production, development, test environments (leave blank to ignore) \n",
+			Response: "general",
+		},
+		{
+			Output:   "Which enclave should be the default \n",
+			Response: "dev",
+		},
+		{
+			Output: "Exporting app config to file://~/.swiz/app-config.yaml\n",
+			Action: NoAction,
+		},
+		{
+			Output: "Exporting environment definition to file://./out/env-def.yaml\n",
+			Action: NoAction,
+		},
+	}
+	mocks, resp := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec)
+	fmt.Println(resp)
+
+	// Get the home directory
+	homeDir, err := os.UserHomeDir()
+	assert.NoError(t, err)
+
+	fh := fileutil.NewFileUrlHelper(mocks.Fs)
+	acBuf, err := fh.OpenUrlWithBaseDir(homeDir, "file://.swiz/app-config.yaml")
+	assert.NoError(t, err)
+
+	edBuf, err := fh.OpenUrl("file://./out/env-def.yaml")
+	assert.NoError(t, err)
+
+	yAc, err := NewYamlTestUtil(string(acBuf))
+	yAc.AssertEqual(t, 1, "version")
+	yAc.AssertEqual(t, "Swizzle", "default_env")
+	yAc.AssertEqual(t, "Swizzle", "env_def[0].name")
+	yAc.AssertEqual(t, "file://./out/env-def.yaml", "env_def[0].env_def_file")
+	yAc.AssertEqual(t, []interface{}{}, "disabled_commands")
+
+	y, err := NewYamlTestUtil(string(edBuf))
+	y.AssertEqual(t, 1, "version")
+	y.AssertEqual(t, "dev", "default_enclave")
+	y.AssertEqual(t, "{{env_name:32}}-{{stack_name:32}}", "naming_scheme")
+
+	y.AssertEqual(t, "dev", "enclave_def[name=dev].name")
+	y.AssertEqual(t, "MS-TRAIN-AWS-DEVELOPMENT", "enclave_def[name=dev].default_provider")
+	y.AssertEqual(t, "Cloudformation", "enclave_def[name=dev].default_iac")
+	y.AssertEqual(t, "example.com", "enclave_def[name=dev].domain_name")
+	y.AssertEqual(t, "MS-TRAIN-AWS-DEVELOPMENT", "enclave_def[name=dev].providers[name=MS-TRAIN-AWS-DEVELOPMENT].name")
+	y.AssertEqual(t, "AWS", "enclave_def[name=dev].providers[name=MS-TRAIN-AWS-DEVELOPMENT].provider_id")
+
+	y.AssertEqual(t, "prod", "enclave_def[name=prod].name")
+	y.AssertEqual(t, "MC-TRAIN-AWS-PROD", "enclave_def[name=prod].default_provider")
+	y.AssertEqual(t, "Cloudformation", "enclave_def[name=prod].default_iac")
+	y.AssertEqual(t, "example.com", "enclave_def[name=prod].domain_name")
+	y.AssertEqual(t, "MC-TRAIN-AWS-PROD", "enclave_def[name=prod].providers[name=MC-TRAIN-AWS-PROD].name")
+	y.AssertEqual(t, "AWS", "enclave_def[name=prod].providers[name=MC-TRAIN-AWS-PROD].provider_id")
+
+	y.AssertEqual(t, "general", "enclave_def[name=general].name")
+	y.AssertEqual(t, "MS-TRAIN-AWS-GENERAL", "enclave_def[name=general].default_provider")
+	y.AssertEqual(t, "Cloudformation", "enclave_def[name=general].default_iac")
+	y.AssertEqual(t, "example.com", "enclave_def[name=general].domain_name")
+	y.AssertEqual(t, "MS-TRAIN-AWS-GENERAL", "enclave_def[name=general].providers[name=MS-TRAIN-AWS-GENERAL].name")
+	y.AssertEqual(t, "AWS", "enclave_def[name=general].providers[name=MS-TRAIN-AWS-GENERAL].provider_id")
+
+	y.AssertEqual(t, true, "enclave_def[name=general].env_behavior.deploy_all_stacks")
+	y.AssertEqual(t, "Enabled", "enclave_def[name=general].params.Apm")
+	y.AssertEqual(t, "Debug", "enclave_def[name=general].params.LogLevel")
+	y.AssertEqual(t, []interface{}{}, "stack_cfg")
+}
+
+// TODO: Test overwrite
