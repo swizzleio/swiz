@@ -11,7 +11,7 @@ import (
 
 func TestVersion(t *testing.T) {
 	cmd := []string{"swiz", "version"}
-	_, resp := RunCommandWithMocks(t, cmd, nil, DefaultCmdTimeoutSec)
+	_, resp := RunCommandWithMocks(t, cmd, nil, DefaultCmdTimeoutSec, false, nil)
 
 	assert.Equal(t, "Version is dev(n/a)\n", resp)
 	fmt.Println("Captured Output:", resp)

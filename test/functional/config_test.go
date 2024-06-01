@@ -4,6 +4,7 @@ package functional
 
 import (
 	"fmt"
+	"github.com/swizzleio/swiz/cmd/cmds"
 	"github.com/swizzleio/swiz/pkg/fileutil"
 	"os"
 	"testing"
@@ -59,7 +60,7 @@ func TestConfigGenerateSimple(t *testing.T) {
 			Response: "",
 		},
 	}
-	mocks, resp := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec)
+	mocks, resp := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
 	fmt.Println(resp)
 
 	// Get the home directory
@@ -167,7 +168,7 @@ func TestConfigGenerateFull(t *testing.T) {
 			Response: "partycity",
 		},
 	}
-	mocks, _ := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec)
+	mocks, _ := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
 	// Get the home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -251,7 +252,7 @@ func TestConfigGenerateMinimal(t *testing.T) {
 			Response: "",
 		},
 	}
-	mocks, _ := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec)
+	mocks, _ := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
 	// Get the home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -329,7 +330,7 @@ func TestConfigGenerateCustomLocation(t *testing.T) {
 			Response: "",
 		},
 	}
-	mocks, _ := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec)
+	mocks, _ := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
 	fh := fileutil.NewFileUrlHelper(mocks.Fs)
 	acBuf, err := fh.OpenUrl("file://blah/app-config.yaml")
 	assert.NoError(t, err)
@@ -343,6 +344,66 @@ func TestConfigGenerateCustomLocation(t *testing.T) {
 
 	y, err := NewYamlTestUtil(string(edBuf))
 	y.AssertEqual(t, "NameMe", "default_enclave")
+}
+
+func TestConfigGenerateCustomLocationNoOverwrite(t *testing.T) {
+	cmd := []string{"swiz", "config", "generate", "--output", "file://blah", "--no-scan"}
+	expect := []*ExpectResponse{
+		{
+			Output: "Scanning for AWS accounts...\n",
+			Action: NoAction,
+		},
+		{
+			Output:   "Provide the name of your AWS account \n",
+			Response: "dev-sandbox",
+		},
+		{
+			Output:   "Enter the AWS account id \n",
+			Response: "012345678901",
+		},
+		{
+			Output:   "What region do you want to use for this account \n",
+			Response: "us-east-2",
+		},
+		{
+			Output:   "What domain name do you want to use for this environment \n",
+			Response: "example.com",
+		},
+		{
+			Output:   "What to you want to name this environment (leave blank to ignore) \n",
+			Response: "",
+		},
+		{
+			Output:   "Specify a comma seperated list for any global parameters (i.e. LogLevel,VpcId) \n",
+			Response: "",
+		},
+		{
+			Output:   "Enter the filename of the IaC template for your stack (leave blank to exit): \n",
+			Response: "",
+		},
+		{
+			Output:   "Name the enclave that AWS account dev-sandbox will be part of. An enclave refers to production, development, test environments (leave blank to ignore) \n",
+			Response: "",
+		},
+	}
+	mocks, resp := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, true, func(mocks cmds.FixtureMocks) error {
+		return copyDir(mocks.Fs, "./data/simplecfg", "blah")
+	})
+
+	fmt.Println(resp)
+
+	fh := fileutil.NewFileUrlHelper(mocks.Fs)
+	acBuf, err := fh.OpenUrl("file://blah/app-config.yaml")
+	assert.NoError(t, err)
+
+	edBuf, err := fh.OpenUrl("file://blah/env-def.yaml")
+	assert.NoError(t, err)
+
+	yAc, err := NewYamlTestUtil(string(acBuf))
+	yAc.AssertEqual(t, "file://env-def.yaml", "env_def[0].env_def_file")
+
+	y, err := NewYamlTestUtil(string(edBuf))
+	y.AssertEqual(t, "dev", "default_enclave")
 }
 
 func TestConfigGenerateScan(t *testing.T) {
@@ -401,7 +462,7 @@ func TestConfigGenerateScan(t *testing.T) {
 			Action: NoAction,
 		},
 	}
-	mocks, resp := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec)
+	mocks, resp := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
 	fmt.Println(resp)
 
 	// Get the home directory
@@ -453,5 +514,3 @@ func TestConfigGenerateScan(t *testing.T) {
 	y.AssertEqual(t, "Debug", "enclave_def[name=general].params.LogLevel")
 	y.AssertEqual(t, []interface{}{}, "stack_cfg")
 }
-
-// TODO: Test overwrite
