@@ -64,7 +64,7 @@ func configGenCmd(ctx *cli.Context) error {
 			output += "/"
 		}
 
-		appConfigOut = fmt.Sprintf("%v/%v", output, appconfig.DefaultFileName)
+		appConfigOut = fmt.Sprintf("%v%v", output, appconfig.DefaultFileName)
 		configOut = fmt.Sprintf("%v%v", output, EnvDefFileName)
 		appConfigOutDir = output
 		configOutDir = output

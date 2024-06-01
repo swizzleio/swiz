@@ -28,7 +28,12 @@ func NewFileHelper(appFs afero.Fs) FileHelper {
 }
 
 func (f FileHelp) FileExists(location string) (bool, error) {
-	return afero.Exists(f.appFs, location)
+	dirLocation, err := f.fh.GetPathFromUrl(location, false)
+	if err != nil {
+		return false, err
+	}
+
+	return afero.Exists(f.appFs, dirLocation)
 }
 
 func (f FileHelp) CreateDirIfNotExist(location string) error {
