@@ -1,4 +1,4 @@
-package functional
+package util
 
 import (
 	"github.com/spf13/afero"
@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 )
 
-// copyFile copies a single file from src to dst using the provided Fs (file system).
-func copyFile(fs afero.Fs, src string, dst string) error {
+// CopyFile copies a single file from src to dst using the provided Fs (file system).
+func CopyFile(fs afero.Fs, src string, dst string) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
@@ -30,8 +30,8 @@ func copyFile(fs afero.Fs, src string, dst string) error {
 	return err
 }
 
-// copyDir recursively copies a directory from the OS filesystem to an afero Fs.
-func copyDir(fs afero.Fs, srcDir string, dstDir string) error {
+// CopyDir recursively copies a directory from the OS filesystem to an afero Fs.
+func CopyDir(fs afero.Fs, srcDir string, dstDir string) error {
 	// Walk the source directory tree
 	return filepath.Walk(srcDir, func(srcPath string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -51,6 +51,6 @@ func copyDir(fs afero.Fs, srcDir string, dstDir string) error {
 		}
 
 		// It's a file, copy it
-		return copyFile(fs, srcPath, dstPath)
+		return CopyFile(fs, srcPath, dstPath)
 	})
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/swizzleio/swiz/cmd/cmds"
 	"github.com/swizzleio/swiz/pkg/fileutil"
+	"github.com/swizzleio/swiz/test/functional/util"
 	"os"
 	"testing"
 
@@ -14,10 +15,10 @@ import (
 
 func TestConfigGenerateSimple(t *testing.T) {
 	cmd := []string{"swiz", "config", "generate", "--no-scan"}
-	expect := []*ExpectResponse{
+	expect := []*util.ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
-			Action: NoAction,
+			Action: util.NoAction,
 		},
 		{
 			Output:   "Provide the name of your AWS account \n",
@@ -60,7 +61,7 @@ func TestConfigGenerateSimple(t *testing.T) {
 			Response: "",
 		},
 	}
-	mocks, resp := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
+	mocks, resp := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
 	fmt.Println(resp)
 
 	// Get the home directory
@@ -74,14 +75,14 @@ func TestConfigGenerateSimple(t *testing.T) {
 	edBuf, err := fh.OpenUrl("file://./out/env-def.yaml")
 	assert.NoError(t, err)
 
-	yAc, err := NewYamlTestUtil(string(acBuf))
+	yAc, err := util.NewYamlTestUtil(string(acBuf))
 	yAc.AssertEqual(t, 1, "version")
 	yAc.AssertEqual(t, "Swizzle", "default_env")
 	yAc.AssertEqual(t, "Swizzle", "env_def[0].name")
 	yAc.AssertEqual(t, "file://./out/env-def.yaml", "env_def[0].env_def_file")
 	yAc.AssertEqual(t, []interface{}{}, "disabled_commands")
 
-	y, err := NewYamlTestUtil(string(edBuf))
+	y, err := util.NewYamlTestUtil(string(edBuf))
 	y.AssertEqual(t, 1, "version")
 	y.AssertEqual(t, "NameMe", "default_enclave")
 	y.AssertEqual(t, "{{env_name:32}}-{{stack_name:32}}", "naming_scheme")
@@ -101,10 +102,10 @@ func TestConfigGenerateSimple(t *testing.T) {
 
 func TestConfigGenerateFull(t *testing.T) {
 	cmd := []string{"swiz", "config", "generate", "--no-scan"}
-	expect := []*ExpectResponse{
+	expect := []*util.ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
-			Action: NoAction,
+			Action: util.NoAction,
 		},
 		{
 			Output:   "Provide the name of your AWS account \n",
@@ -141,34 +142,34 @@ func TestConfigGenerateFull(t *testing.T) {
 		{
 			Output:   "Enter the filename of the IaC template for your stack (leave blank to exit): \n",
 			Response: "foobar.yaml",
-			Match:    ExactOnce,
+			Match:    util.ExactOnce,
 		},
 		{
 			Output:   "Enter the name of the stack: \n",
 			Response: "Awesomesauce",
-			Match:    ExactOnce,
+			Match:    util.ExactOnce,
 		},
 		{
 			Output:   "Enter the filename of the IaC template for your stack (leave blank to exit): \n",
 			Response: "anotherone.yaml",
-			Match:    ExactOnce,
+			Match:    util.ExactOnce,
 		},
 		{
 			Output:   "Enter the name of the stack: \n",
 			Response: "Notsoawesome",
-			Match:    ExactOnce,
+			Match:    util.ExactOnce,
 		},
 		{
 			Output:   "Enter the filename of the IaC template for your stack (leave blank to exit): \n",
 			Response: "",
-			Match:    ExactOnce,
+			Match:    util.ExactOnce,
 		},
 		{
 			Output:   "Name the enclave that AWS account dev-sandbox will be part of. An enclave refers to production, development, test environments (leave blank to ignore) \n",
 			Response: "partycity",
 		},
 	}
-	mocks, _ := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
+	mocks, _ := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
 	// Get the home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -182,14 +183,14 @@ func TestConfigGenerateFull(t *testing.T) {
 	edBuf, err := fh.OpenUrl("file://./out/env-def.yaml")
 	assert.NoError(t, err)
 
-	yAc, err := NewYamlTestUtil(string(acBuf))
+	yAc, err := util.NewYamlTestUtil(string(acBuf))
 	yAc.AssertEqual(t, 1, "version")
 	yAc.AssertEqual(t, "GrilledCheeseDelivery", "default_env")
 	yAc.AssertEqual(t, "GrilledCheeseDelivery", "env_def[0].name")
 	yAc.AssertEqual(t, "file://./out/env-def.yaml", "env_def[0].env_def_file")
 	yAc.AssertEqual(t, []interface{}{}, "disabled_commands")
 
-	y, err := NewYamlTestUtil(string(edBuf))
+	y, err := util.NewYamlTestUtil(string(edBuf))
 	y.AssertEqual(t, 1, "version")
 	y.AssertEqual(t, "partycity", "default_enclave")
 	y.AssertEqual(t, "{{env_name:32}}-{{stack_name:32}}", "naming_scheme")
@@ -214,10 +215,10 @@ func TestConfigGenerateFull(t *testing.T) {
 
 func TestConfigGenerateMinimal(t *testing.T) {
 	cmd := []string{"swiz", "config", "generate", "--no-scan"}
-	expect := []*ExpectResponse{
+	expect := []*util.ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
-			Action: NoAction,
+			Action: util.NoAction,
 		},
 		{
 			Output:   "Provide the name of your AWS account \n",
@@ -252,7 +253,7 @@ func TestConfigGenerateMinimal(t *testing.T) {
 			Response: "",
 		},
 	}
-	mocks, _ := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
+	mocks, _ := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
 	// Get the home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -266,14 +267,14 @@ func TestConfigGenerateMinimal(t *testing.T) {
 	edBuf, err := fh.OpenUrl("file://./out/env-def.yaml")
 	assert.NoError(t, err)
 
-	yAc, err := NewYamlTestUtil(string(acBuf))
+	yAc, err := util.NewYamlTestUtil(string(acBuf))
 	yAc.AssertEqual(t, 1, "version")
 	yAc.AssertEqual(t, "default", "default_env")
 	yAc.AssertEqual(t, "default", "env_def[0].name")
 	yAc.AssertEqual(t, "file://./out/env-def.yaml", "env_def[0].env_def_file")
 	yAc.AssertEqual(t, []interface{}{}, "disabled_commands")
 
-	y, err := NewYamlTestUtil(string(edBuf))
+	y, err := util.NewYamlTestUtil(string(edBuf))
 	y.AssertEqual(t, 1, "version")
 	y.AssertEqual(t, "NameMe", "default_enclave")
 	y.AssertEqual(t, "{{env_name:32}}-{{stack_name:32}}", "naming_scheme")
@@ -292,10 +293,10 @@ func TestConfigGenerateMinimal(t *testing.T) {
 
 func TestConfigGenerateCustomLocation(t *testing.T) {
 	cmd := []string{"swiz", "config", "generate", "--output", "file://blah", "--no-scan"}
-	expect := []*ExpectResponse{
+	expect := []*util.ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
-			Action: NoAction,
+			Action: util.NoAction,
 		},
 		{
 			Output:   "Provide the name of your AWS account \n",
@@ -330,7 +331,7 @@ func TestConfigGenerateCustomLocation(t *testing.T) {
 			Response: "",
 		},
 	}
-	mocks, _ := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
+	mocks, _ := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
 	fh := fileutil.NewFileUrlHelper(mocks.Fs)
 	acBuf, err := fh.OpenUrl("file://blah/app-config.yaml")
 	assert.NoError(t, err)
@@ -338,20 +339,20 @@ func TestConfigGenerateCustomLocation(t *testing.T) {
 	edBuf, err := fh.OpenUrl("file://blah/env-def.yaml")
 	assert.NoError(t, err)
 
-	yAc, err := NewYamlTestUtil(string(acBuf))
+	yAc, err := util.NewYamlTestUtil(string(acBuf))
 	yAc.AssertEqual(t, "default", "default_env")
 	yAc.AssertEqual(t, "file://blah/env-def.yaml", "env_def[0].env_def_file")
 
-	y, err := NewYamlTestUtil(string(edBuf))
+	y, err := util.NewYamlTestUtil(string(edBuf))
 	y.AssertEqual(t, "NameMe", "default_enclave")
 }
 
 func TestConfigGenerateCustomLocationNoOverwrite(t *testing.T) {
 	cmd := []string{"swiz", "config", "generate", "--output", "file://blah", "--no-scan"}
-	expect := []*ExpectResponse{
+	expect := []*util.ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
-			Action: NoAction,
+			Action: util.NoAction,
 		},
 		{
 			Output:   "Provide the name of your AWS account \n",
@@ -386,8 +387,8 @@ func TestConfigGenerateCustomLocationNoOverwrite(t *testing.T) {
 			Response: "",
 		},
 	}
-	mocks, resp := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, true, func(mocks cmds.FixtureMocks) error {
-		return copyDir(mocks.Fs, "./data/simplecfg", "blah")
+	mocks, resp := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, true, func(mocks cmds.FixtureMocks) error {
+		return util.CopyDir(mocks.Fs, "./data/simplecfg", "blah")
 	})
 
 	fmt.Println(resp)
@@ -399,19 +400,19 @@ func TestConfigGenerateCustomLocationNoOverwrite(t *testing.T) {
 	edBuf, err := fh.OpenUrl("file://blah/env-def.yaml")
 	assert.NoError(t, err)
 
-	yAc, err := NewYamlTestUtil(string(acBuf))
+	yAc, err := util.NewYamlTestUtil(string(acBuf))
 	yAc.AssertEqual(t, "file://env-def.yaml", "env_def[0].env_def_file")
 
-	y, err := NewYamlTestUtil(string(edBuf))
+	y, err := util.NewYamlTestUtil(string(edBuf))
 	y.AssertEqual(t, "dev", "default_enclave")
 }
 
 func TestConfigGenerateScan(t *testing.T) {
 	cmd := []string{"swiz", "config", "generate"}
-	expect := []*ExpectResponse{
+	expect := []*util.ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
-			Action: NoAction,
+			Action: util.NoAction,
 		},
 		{
 			Output:   "What domain name do you want to use for this environment \n",
@@ -455,14 +456,14 @@ func TestConfigGenerateScan(t *testing.T) {
 		},
 		{
 			Output: "Exporting app config to file://~/.swiz/app-config.yaml\n",
-			Action: NoAction,
+			Action: util.NoAction,
 		},
 		{
 			Output: "Exporting environment definition to file://./out/env-def.yaml\n",
-			Action: NoAction,
+			Action: util.NoAction,
 		},
 	}
-	mocks, resp := RunCommandWithMocks(t, cmd, expect, DefaultCmdTimeoutSec, false, nil)
+	mocks, resp := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
 	fmt.Println(resp)
 
 	// Get the home directory
@@ -476,14 +477,14 @@ func TestConfigGenerateScan(t *testing.T) {
 	edBuf, err := fh.OpenUrl("file://./out/env-def.yaml")
 	assert.NoError(t, err)
 
-	yAc, err := NewYamlTestUtil(string(acBuf))
+	yAc, err := util.NewYamlTestUtil(string(acBuf))
 	yAc.AssertEqual(t, 1, "version")
 	yAc.AssertEqual(t, "Swizzle", "default_env")
 	yAc.AssertEqual(t, "Swizzle", "env_def[0].name")
 	yAc.AssertEqual(t, "file://./out/env-def.yaml", "env_def[0].env_def_file")
 	yAc.AssertEqual(t, []interface{}{}, "disabled_commands")
 
-	y, err := NewYamlTestUtil(string(edBuf))
+	y, err := util.NewYamlTestUtil(string(edBuf))
 	y.AssertEqual(t, 1, "version")
 	y.AssertEqual(t, "dev", "default_enclave")
 	y.AssertEqual(t, "{{env_name:32}}-{{stack_name:32}}", "naming_scheme")

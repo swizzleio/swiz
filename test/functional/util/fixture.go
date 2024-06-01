@@ -1,6 +1,6 @@
 //go:build functionaltest
 
-package functional
+package util
 
 import (
 	"bufio"
