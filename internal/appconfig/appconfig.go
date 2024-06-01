@@ -1,15 +1,15 @@
 package appconfig
 
 import (
+	"fmt"
 	"github.com/spf13/afero"
 	"github.com/swizzleio/swiz/pkg/configutil"
 	"github.com/swizzleio/swiz/pkg/fileutil"
-	"path/filepath"
 )
 
 var DefaultFileName = "app-config.yaml"
 var DefaultSwizDir = "file://~/.swiz"
-var DefaultLocation = filepath.Join(DefaultSwizDir, DefaultFileName)
+var DefaultLocation = fmt.Sprintf("%v/%v", DefaultSwizDir, DefaultFileName) // Don't use filepath.Join here, it's not URI aware
 var DefaultOutLocation = "file://./out"
 
 type EnvDef struct {
