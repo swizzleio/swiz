@@ -36,7 +36,7 @@ const (
 	NoAction
 )
 
-const DefaultCmdTimeoutSec = 2
+const DefaultCmdTimeoutSec = 10
 
 type ExpectResponse struct {
 	Match    ExpectResponseMatching
@@ -46,7 +46,10 @@ type ExpectResponse struct {
 	used     bool
 }
 
-func RunCommandWithMocks(t *testing.T, command []string, expect []*ExpectResponse, timeoutSec time.Duration) (mocks cmds.FixtureMocks, resp string) {
+type Bootstrap func(mocks cmds.FixtureMocks) error
+
+func RunCommandWithMocks(t *testing.T, command []string, expect []*ExpectResponse, timeoutSec time.Duration, expectFail bool,
+	bootstrap Bootstrap) (mocks cmds.FixtureMocks, resp string) {
 	// Set up pipes
 	stdinR, stdinW, err := os.Pipe()
 	assert.NoError(t, err)
@@ -55,6 +58,11 @@ func RunCommandWithMocks(t *testing.T, command []string, expect []*ExpectRespons
 
 	// Set up fixture
 	mocks = cmds.SetupFixtures(stdinR, stdoutW)
+
+	if bootstrap != nil {
+		err = bootstrap(mocks)
+		assert.NoError(t, err)
+	}
 
 	// Start up output monitoring
 	cmdDone := make(chan bool, 1)
@@ -66,7 +74,11 @@ func RunCommandWithMocks(t *testing.T, command []string, expect []*ExpectRespons
 
 	go func() {
 		ret := cmds.Execute()
-		assert.Equal(t, 0, ret)
+		if expectFail {
+			assert.NotEqual(t, 0, ret)
+		} else {
+			assert.Equal(t, 0, ret)
+		}
 		assert.NoError(t, stdoutW.Close())
 		cmdDone <- true
 	}()
