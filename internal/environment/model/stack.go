@@ -11,12 +11,14 @@ const (
 )
 
 type StackConfig struct {
-	Version      int               `yaml:"version"`
-	Name         string            `yaml:"-"`
-	RawName      string            `yaml:"-"`
-	Order        int               `yaml:"-"`
-	Parameters   map[string]string `yaml:"params"`
-	TemplateFile string            `yaml:"template_file"`
+	Version          int               `yaml:"version"`
+	Name             string            `yaml:"-"`
+	RawName          string            `yaml:"-"`
+	Order            int               `yaml:"-"`
+	Parameters       map[string]string `yaml:"params"`
+	TemplateFile     string            `yaml:"template_file"`
+	ProviderOverride string            `yaml:"provider_override"` // Future multi-provider support
+	IacOverride      string            `yaml:"iac_override"`      // Future multi IAC support
 }
 
 type StackInfo struct {
