@@ -11,14 +11,12 @@ const (
 )
 
 type StackConfig struct {
-	Version         int               `yaml:"version"`
-	Name            string            `yaml:"-"`
-	RawName         string            `yaml:"-"`
-	Order           int               `yaml:"-"`
-	Parameters      map[string]string `yaml:"params"`
-	TemplateFile    string            `yaml:"template_file"`
-	IacOverride     string            `yaml:"iac_override"`     // Currently not used since the only choice is Cloudformation
-	EnclaveCategory string            `yaml:"enclave_category"` // Currently not used but will be used once multiple enclaves are supported
+	Version      int               `yaml:"version"`
+	Name         string            `yaml:"-"`
+	RawName      string            `yaml:"-"`
+	Order        int               `yaml:"-"`
+	Parameters   map[string]string `yaml:"params"`
+	TemplateFile string            `yaml:"template_file"`
 }
 
 type StackInfo struct {

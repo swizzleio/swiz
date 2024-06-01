@@ -27,7 +27,6 @@ type Enclave struct {
 	Name            string            `yaml:"name"`
 	DefaultProvider string            `yaml:"default_provider"`
 	DefaultIac      string            `yaml:"default_iac"`
-	EnclaveCategory string            `yaml:"enclave_category"` // This will be used for future multiple enclave support
 	Providers       []EncProvider     `yaml:"providers"`
 	EnvBehavior     EnvBehavior       `yaml:"env_behavior"`
 	DomainName      string            `yaml:"domain_name"`
