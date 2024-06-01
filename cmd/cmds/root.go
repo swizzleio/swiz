@@ -73,7 +73,7 @@ func Execute() int {
 
 	err := appCli.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return -1
 	}
 
