@@ -4,7 +4,6 @@ package functional
 
 import (
 	"fmt"
-	"github.com/swizzleio/swiz/cmd/cmds"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,8 +11,8 @@ import (
 
 func TestVersion(t *testing.T) {
 	cmd := []string{"swiz", "version"}
-	RunTestWithMocks(t, cmd, nil, 2, func(t *testing.T, mocks cmds.FixtureMocks, resp string) {
-		assert.Equal(t, "Version is dev(n/a)\n", resp)
-		fmt.Println("Captured Output:", resp)
-	})
+	_, resp := RunCommandWithMocks(t, cmd, nil, DefaultCmdTimeoutSec)
+
+	assert.Equal(t, "Version is dev(n/a)\n", resp)
+	fmt.Println("Captured Output:", resp)
 }

@@ -36,6 +36,8 @@ const (
 	NoAction
 )
 
+const DefaultCmdTimeoutSec = 2
+
 type ExpectResponse struct {
 	Match    ExpectResponseMatching
 	Output   string
@@ -44,9 +46,7 @@ type ExpectResponse struct {
 	used     bool
 }
 
-type RunFunctionalTest func(t *testing.T, mocks cmds.FixtureMocks, resp string)
-
-func RunTestWithMocks(t *testing.T, command []string, expect []*ExpectResponse, timeoutSec time.Duration, handler RunFunctionalTest) {
+func RunCommandWithMocks(t *testing.T, command []string, expect []*ExpectResponse, timeoutSec time.Duration) (mocks cmds.FixtureMocks, resp string) {
 	// Set up pipes
 	stdinR, stdinW, err := os.Pipe()
 	assert.NoError(t, err)
@@ -54,7 +54,7 @@ func RunTestWithMocks(t *testing.T, command []string, expect []*ExpectResponse, 
 	assert.NoError(t, err)
 
 	// Set up fixture
-	mocks := cmds.SetupFixtures(stdinR, stdoutW)
+	mocks = cmds.SetupFixtures(stdinR, stdoutW)
 
 	// Start up output monitoring
 	cmdDone := make(chan bool, 1)
@@ -83,7 +83,9 @@ func RunTestWithMocks(t *testing.T, command []string, expect []*ExpectResponse, 
 	if capturedOutput.failureMsg != "" {
 		assert.Failf(t, capturedOutput.failureMsg, capturedOutput.response)
 	}
-	handler(t, mocks, capturedOutput.response)
+
+	resp = capturedOutput.response
+	return
 }
 
 func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Duration,
