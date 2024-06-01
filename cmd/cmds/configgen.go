@@ -31,6 +31,11 @@ func init() {
 				Value: false,
 				Usage: "Force overwrite of files",
 			},
+			&cli.BoolFlag{
+				Name:  "no-scan",
+				Value: false,
+				Usage: "Do not scan for accounts",
+			},
 		},
 	})
 }
@@ -48,6 +53,7 @@ func writeYaml[T any](location string, err error, data T) error {
 func configGenCmd(ctx *cli.Context) error {
 	output := ctx.String("output")
 	force := ctx.Bool("force")
+	noScan := ctx.Bool("no-scan")
 	appConfigOut := appconfig.DefaultLocation
 	appConfigOutDir := appconfig.DefaultSwizDir
 	configOut := fmt.Sprintf("%v/%v", appconfig.DefaultOutLocation, EnvDefFileName)
@@ -81,7 +87,7 @@ func configGenCmd(ctx *cli.Context) error {
 	}
 
 	// Parse AWS accounts
-	awsAccts, err := getAwsConfig()
+	awsAccts, err := getAwsConfig(noScan)
 	if err != nil {
 		return err
 	}
@@ -285,19 +291,23 @@ func getCoreConfig(envDefLoc string) (*coreConfig, error) {
 	return &answers, nil
 }
 
-func getAwsConfig() ([]awswrap.AwsConfig, error) {
+func getAwsConfig(noScan bool) ([]awswrap.AwsConfig, error) {
 	cl.Info("Scanning for AWS accounts...\n")
 	awsCfg, err := awswrap.NewAwsConfigManage()
 	if err != nil {
 		return nil, err
 	}
 
-	awsAccts, aErr := awsCfg.GetAllOrgAccounts()
-	if aErr != nil {
-		// Get the default account
-		awsAcct, cErr := awsCfg.GetDefaultConfig()
-		if cErr == nil {
-			awsAccts = append(awsAccts, *awsAcct)
+	awsAccts := []awswrap.AwsConfig{}
+	var aErr error
+	if !noScan {
+		awsAccts, aErr = awsCfg.GetAllOrgAccounts()
+		if aErr != nil {
+			// Get the default account
+			awsAcct, cErr := awsCfg.GetDefaultConfig()
+			if cErr == nil {
+				awsAccts = append(awsAccts, *awsAcct)
+			}
 		}
 	}
 

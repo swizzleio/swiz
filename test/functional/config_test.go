@@ -12,7 +12,7 @@ import (
 )
 
 func TestConfigGenerateSimple(t *testing.T) {
-	cmd := []string{"swiz", "config", "generate"}
+	cmd := []string{"swiz", "config", "generate", "--no-scan"}
 	expect := []*ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
@@ -99,7 +99,7 @@ func TestConfigGenerateSimple(t *testing.T) {
 }
 
 func TestConfigGenerateFull(t *testing.T) {
-	cmd := []string{"swiz", "config", "generate"}
+	cmd := []string{"swiz", "config", "generate", "--no-scan"}
 	expect := []*ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
@@ -212,7 +212,7 @@ func TestConfigGenerateFull(t *testing.T) {
 }
 
 func TestConfigGenerateMinimal(t *testing.T) {
-	cmd := []string{"swiz", "config", "generate"}
+	cmd := []string{"swiz", "config", "generate", "--no-scan"}
 	expect := []*ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
@@ -290,7 +290,7 @@ func TestConfigGenerateMinimal(t *testing.T) {
 }
 
 func TestConfigGenerateCustomLocation(t *testing.T) {
-	cmd := []string{"swiz", "config", "generate", "--output", "file://blah"}
+	cmd := []string{"swiz", "config", "generate", "--output", "file://blah", "--no-scan"}
 	expect := []*ExpectResponse{
 		{
 			Output: "Scanning for AWS accounts...\n",
