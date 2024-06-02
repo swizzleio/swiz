@@ -45,8 +45,17 @@ func (d *DumbSurvey) AskOne(p survey.Prompt, response interface{}, opts ...surve
 		}
 	}
 
-	pResponse := response.(*string)
-	*pResponse = strings.TrimSpace(resp)
+	resp = strings.TrimSpace(resp)
+
+	switch v := response.(type) {
+	case *string:
+		*v = resp
+	case *bool:
+		*v = strings.ToLower(resp) == "t"
+	// Add more case statements if you need to handle more types
+	default:
+		return fmt.Errorf("unsupported response type: %T", response)
+	}
 
 	return nil
 }
