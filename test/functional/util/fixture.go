@@ -65,8 +65,8 @@ func RunCommandWithMocks(t *testing.T, command []string, expect []*ExpectRespons
 	}
 
 	// Start up output monitoring
-	cmdDone := make(chan bool, 1)
-	capturedOutputChan := make(chan testResult, 1)
+	cmdDone := make(chan bool)
+	capturedOutputChan := make(chan testResult)
 	go handleStdout(stdoutR, stdinW, timeoutSec, expect, cmdDone, capturedOutputChan)
 
 	// Run command
@@ -79,6 +79,7 @@ func RunCommandWithMocks(t *testing.T, command []string, expect []*ExpectRespons
 		} else {
 			assert.Equal(t, 0, ret)
 		}
+
 		assert.NoError(t, stdoutW.Close())
 		cmdDone <- true
 	}()
@@ -107,20 +108,20 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 	}
 
 	reader := bufio.NewReader(stdout)
-	output := ""
+	var output strings.Builder
 	cmdRunning := true
 	timeout := time.After(timeoutSec * time.Second)
 	result := testResult{}
+
 	for cmdRunning {
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if err != io.EOF {
 				result.failureMsg = fmt.Sprintf("error reading stdout: %s", err)
 			}
+			cmdRunning = false
 			break
 		}
-
-		output += line
 
 		select {
 		case <-cmdDone:
@@ -138,18 +139,33 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 					if resp.Action == Response {
 						outResp := strings.TrimSpace(resp.Response) + "\n"
 						_, wErr := stdin.Write([]byte(outResp))
-						output += outResp
 						if wErr != nil {
 							result.failureMsg = "failed to write to stdin"
 							cmdRunning = false
 						}
+						output.WriteString(outResp)
 					}
 				}
 			}
 		}
+
+		output.WriteString(line)
 	}
 
-	result.response = output
+	// Read remaining data if any
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			result.failureMsg = fmt.Sprintf("error reading remaining stdout: %s", err)
+			break
+		}
+		output.WriteString(line)
+	}
+
+	result.response = output.String()
 	capturedOutputChan <- result
 }
 
