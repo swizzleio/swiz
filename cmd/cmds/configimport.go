@@ -28,7 +28,7 @@ func configImportCmd(ctx *cli.Context) error {
 		},
 		{
 			Key:           "Signature",
-			Message:       "Paste the signature here",
+			Message:       "Paste the signature here (or leave blank if you don't know)",
 			TransformMode: appcli.TransformModeTrimSpace,
 		},
 	}
