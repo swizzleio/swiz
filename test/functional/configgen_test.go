@@ -3,7 +3,6 @@
 package functional
 
 import (
-	"fmt"
 	"github.com/swizzleio/swiz/cmd/cmds"
 	"github.com/swizzleio/swiz/pkg/fileutil"
 	"github.com/swizzleio/swiz/test/functional/util"
@@ -61,8 +60,7 @@ func TestConfigGenerateSimple(t *testing.T) {
 			Response: "",
 		},
 	}
-	mocks, resp := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
-	fmt.Println(resp)
+	mocks, _ := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
 
 	// Get the home directory
 	homeDir, err := os.UserHomeDir()
@@ -172,10 +170,8 @@ func TestConfigGenerateFull(t *testing.T) {
 	mocks, _ := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
 	// Get the home directory
 	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Println("Error getting home directory:", err)
-		return
-	}
+	assert.NoError(t, err)
+
 	fh := fileutil.NewFileUrlHelper(mocks.Fs)
 	acBuf, err := fh.OpenUrlWithBaseDir(homeDir, "file://.swiz/app-config.yaml")
 	assert.NoError(t, err)
@@ -256,10 +252,8 @@ func TestConfigGenerateMinimal(t *testing.T) {
 	mocks, _ := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
 	// Get the home directory
 	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Println("Error getting home directory:", err)
-		return
-	}
+	assert.NoError(t, err)
+
 	fh := fileutil.NewFileUrlHelper(mocks.Fs)
 	acBuf, err := fh.OpenUrlWithBaseDir(homeDir, "file://.swiz/app-config.yaml")
 	assert.NoError(t, err)
@@ -387,11 +381,9 @@ func TestConfigGenerateCustomLocationNoOverwrite(t *testing.T) {
 			Response: "",
 		},
 	}
-	mocks, resp := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, true, func(mocks cmds.FixtureMocks) error {
+	mocks, _ := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, true, func(mocks cmds.FixtureMocks) error {
 		return util.CopyDir(mocks.Fs, "./data/simplecfg", "blah")
 	})
-
-	fmt.Println(resp)
 
 	fh := fileutil.NewFileUrlHelper(mocks.Fs)
 	acBuf, err := fh.OpenUrl("file://blah/app-config.yaml")
@@ -463,8 +455,7 @@ func TestConfigGenerateScan(t *testing.T) {
 			Action: util.NoAction,
 		},
 	}
-	mocks, resp := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
-	fmt.Println(resp)
+	mocks, _ := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, false, nil)
 
 	// Get the home directory
 	homeDir, err := os.UserHomeDir()

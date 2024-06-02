@@ -3,7 +3,6 @@
 package functional
 
 import (
-	"fmt"
 	"github.com/swizzleio/swiz/cmd/cmds"
 	"github.com/swizzleio/swiz/test/functional/util"
 	"os"
@@ -22,7 +21,7 @@ func TestConfigExport(t *testing.T) {
 		assert.NoError(t, err)
 		return util.CopyDir(mocks.Fs, "./data/basefs/swiz", filepath.Join(homeDir, ".swiz"))
 	})
-	fmt.Println(resp)
+
 	lines := strings.Split(resp, "\n")
 	assert.Equal(t, "App config: dmVyc2lvbjogMApkZWZhdWx0X2VudjogIiIKZW52X2RlZjogW10KZGlzYWJsZWRfY29tbWFuZHM6IFtdCg==", lines[len(lines)-4])
 	assert.Equal(t, "Signature: b869bfa89aee048121b18f24e8f27fcacb358507afa2cfdfae5cdbb092e543be", lines[len(lines)-3])
