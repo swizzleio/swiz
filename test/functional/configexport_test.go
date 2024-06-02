@@ -23,7 +23,7 @@ func TestConfigExport(t *testing.T) {
 	})
 
 	lines := strings.Split(resp, "\n")
-	assert.Equal(t, "App config: dmVyc2lvbjogMApkZWZhdWx0X2VudjogIiIKZW52X2RlZjogW10KZGlzYWJsZWRfY29tbWFuZHM6IFtdCg==", lines[len(lines)-4])
-	assert.Equal(t, "Signature: b869bfa89aee048121b18f24e8f27fcacb358507afa2cfdfae5cdbb092e543be", lines[len(lines)-3])
-	assert.Equal(t, "Word list: select guitarist slingshot paramount pupil universe adrift inventive blackjack photograph payday Capricorn trauma vagabond lockup revenue spheroid conformist music amusement rocker Pacific stagehand therapist robust fascinate suspense phonetic physique travesty crucial racketeer", lines[len(lines)-2])
+	assert.Equal(t, "App config: dmVyc2lvbjogMQpkZWZhdWx0X2VudjogU2xlZXB5U2xlZXAKZW52X2RlZjoKICAgIC0gbmFtZTogU2xlZXB5U2xlZXAKICAgICAgZW52X2RlZl9maWxlOiBmaWxlOi8vfi9zbGVlcGNmL2Vudi1kZWYueWFtbApkaXNhYmxlZF9jb21tYW5kczogW10K", lines[len(lines)-4])
+	assert.Equal(t, "Signature: 8cd115d4637660341fa95066ea93945043221710f4ccc2ed1e75e88a80a4fe17", lines[len(lines)-3])
+	assert.Equal(t, "Word list: offload scavenger backfield souvenir flatfoot impetus facial confidence billiard passenger drumbeat gossamer Trojan molasses Pluto embezzle crucial candidate banjo autopsy upshot revolver snapshot unify berserk impartial trauma maverick merit Pandora woodlark bookseller", lines[len(lines)-2])
 }
