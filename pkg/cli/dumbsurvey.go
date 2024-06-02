@@ -51,7 +51,7 @@ func (d *DumbSurvey) AskOne(p survey.Prompt, response interface{}, opts ...surve
 	case *string:
 		*v = resp
 	case *bool:
-		*v = strings.ToLower(resp) == "t"
+		*v = strings.ToLower(resp) == "y"
 	// Add more case statements if you need to handle more types
 	default:
 		return fmt.Errorf("unsupported response type: %T", response)
