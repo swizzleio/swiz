@@ -36,7 +36,7 @@ const (
 	NoAction
 )
 
-const DefaultCmdTimeoutSec = 2
+const DefaultCmdTimeoutSec = 2 // Note, update this to a really large number when debugging tests
 
 type ExpectResponse struct {
 	Match    ExpectResponseMatching
@@ -123,27 +123,29 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 			break
 		}
 
-		select {
-		case <-cmdDone:
-			cmdRunning = false
-		case <-timeout:
-			result.failureMsg = "timed out waiting for output"
-			cmdRunning = false
-		default:
-			if len(expect) != 0 {
-				resp, rErr := getExpectResponse(line, expect)
-				if rErr != nil {
-					result.failureMsg = rErr.Error()
-					cmdRunning = false
-				} else {
-					if resp.Action == Response {
-						outResp := strings.TrimSpace(resp.Response) + "\n"
-						_, wErr := stdin.Write([]byte(outResp))
-						if wErr != nil {
-							result.failureMsg = "failed to write to stdin"
-							cmdRunning = false
+		if line != "\n" {
+			select {
+			case <-cmdDone:
+				cmdRunning = false
+			case <-timeout:
+				result.failureMsg = "timed out waiting for output"
+				cmdRunning = false
+			default:
+				if len(expect) != 0 {
+					resp, rErr := getExpectResponse(line, expect)
+					if rErr != nil {
+						result.failureMsg = rErr.Error()
+						cmdRunning = false
+					} else {
+						if resp.Action == Response {
+							outResp := strings.TrimSpace(resp.Response) + "\n"
+							_, wErr := stdin.Write([]byte(outResp))
+							if wErr != nil {
+								result.failureMsg = "failed to write to stdin"
+								cmdRunning = false
+							}
+							output.WriteString(outResp)
 						}
-						output.WriteString(outResp)
 					}
 				}
 			}
