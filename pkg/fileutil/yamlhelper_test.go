@@ -26,15 +26,21 @@ func TestOpenWithBaseDir(t *testing.T) {
 		name        string
 		baseDir     string
 		location    string
-		inputData   map[string]interface{}
+		inputData   DummyStruct
 		expectedErr bool
 		mockOpenErr error
 	}{
 		{
-			name:        "successful open",
-			baseDir:     "",
-			location:    "testdata/sample.yaml",
-			inputData:   map[string]interface{}{"key": "value"},
+			name:     "successful open",
+			baseDir:  "",
+			location: "testdata/sample.yaml",
+			inputData: DummyStruct{
+				Version: 1,
+				Parameters: map[string]string{
+					"key": "value",
+				},
+				TemplateFile: "stuff.yaml",
+			},
 			expectedErr: false,
 		},
 		{
@@ -60,6 +66,9 @@ func TestOpenWithBaseDir(t *testing.T) {
 			// Test OpenWithBaseDir
 			_, err := helper.OpenWithBaseDir(tt.baseDir, tt.location)
 			assert.Equal(t, tt.expectedErr, err != nil)
+			if !tt.expectedErr {
+				assert.Equal(t, tt.inputData, helper.Yaml)
+			}
 		})
 	}
 }
@@ -105,19 +114,31 @@ func TestSaveWithBaseDir(t *testing.T) {
 			helper.Set(tt.inputData)
 			err := helper.SaveWithBaseDir(tt.baseDir, tt.location)
 			assert.Equal(t, tt.expectedErr, err != nil)
+			mockFileUrlHelper.AssertCalled(t, "WriteUrlWithBaseDir", tt.baseDir, tt.location, mock.Anything)
 		})
 	}
 }
 
 func TestSetFromB64(t *testing.T) {
+	testStruct := DummyStruct{
+		Version: 1,
+		Parameters: map[string]string{
+			"key": "value",
+		},
+		TemplateFile: "stuff.yaml",
+	}
+	yamlString, yErr := yaml.Marshal(testStruct)
+	assert.NoError(t, yErr)
 	tests := []struct {
 		name        string
 		inputData   string
+		testData    DummyStruct
 		expectedErr bool
 	}{
 		{
 			name:        "valid base64",
-			inputData:   base64.StdEncoding.EncodeToString([]byte("key: value")),
+			inputData:   base64.StdEncoding.EncodeToString(yamlString),
+			testData:    testStruct,
 			expectedErr: false,
 		},
 		{
@@ -134,6 +155,9 @@ func TestSetFromB64(t *testing.T) {
 			// Test SetFromB64
 			err := helper.SetFromB64(tt.inputData)
 			assert.Equal(t, tt.expectedErr, err != nil)
+			if !tt.expectedErr {
+				assert.Equal(t, tt.testData, helper.Yaml)
+			}
 		})
 	}
 }
@@ -185,40 +209,13 @@ func TestGetBase64(t *testing.T) {
 	}
 }
 
-func TestParseBase64(t *testing.T) {
-	tests := []struct {
-		name        string
-		inputData   string
-		expectedErr bool
-	}{
-		{
-			name:        "valid base64",
-			inputData:   base64.StdEncoding.EncodeToString([]byte("key: value")),
-			expectedErr: false,
-		},
-		{
-			name:        "invalid base64",
-			inputData:   "invalid!!",
-			expectedErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			helper := YamlHelp[DummyStruct]{}
-
-			// Test ParseBase64
-			err := helper.ParseBase64(tt.inputData)
-			assert.Equal(t, tt.expectedErr, err != nil)
-		})
-	}
-}
-
 func TestGetSignature(t *testing.T) {
 	tests := []struct {
-		name        string
-		inputData   *DummyStruct
-		expectedErr bool
+		name             string
+		inputData        *DummyStruct
+		expectedErr      bool
+		expectedSig      string
+		expectedWordlist string
 	}{
 		{
 			name: "successful signature generation",
@@ -232,7 +229,9 @@ func TestGetSignature(t *testing.T) {
 				},
 				TemplateFile: "stuff.yaml",
 			},
-			expectedErr: false,
+			expectedErr:      false,
+			expectedSig:      "d9bf5f45b05046e8bd57128f0a4e41a1df99b8668c274b125f12387e584ee3df",
+			expectedWordlist: "sugar rebellion eyetooth detector ruffled embezzle cubic typewriter skullcap Eskimo atlas midsummer allow distortion cranky outfielder talon nebula select gossamer offload celebrate dragnet backwater eyetooth backwater classic insurgent endorse distortion tissue therapist",
 		},
 		{
 			name:        "nil input data",
@@ -247,8 +246,10 @@ func TestGetSignature(t *testing.T) {
 			helper.Set(tt.inputData)
 
 			// Test GetSignature
-			_, _, err := helper.GetSignature()
+			sig, wordlist, err := helper.GetSignature()
 			assert.Equal(t, tt.expectedErr, err != nil)
+			assert.Equal(t, tt.expectedSig, sig)
+			assert.Equal(t, tt.expectedWordlist, wordlist)
 		})
 	}
 }

@@ -29,7 +29,6 @@ type SerializeHelper[T any] interface {
 	SetFromB64(data string) error
 	Get() T
 	GetBase64() (*Base64Resp, error)
-	ParseBase64(data string) error
 	GetSignature() (sig string, wordList string, err error)
 }
 
@@ -54,12 +53,12 @@ func NewYamlHelper[T any](appFs afero.Fs) SerializeHelper[T] {
 }
 
 // Open reads and parses the YAML data from the specified location.
-func (y YamlHelp[T]) Open(location string) (*T, error) {
+func (y *YamlHelp[T]) Open(location string) (*T, error) {
 	return y.OpenWithBaseDir("", location)
 }
 
 // OpenWithBaseDir reads and parses the YAML data from the specified location, using a base directory.
-func (y YamlHelp[T]) OpenWithBaseDir(baseDir string, location string) (*T, error) {
+func (y *YamlHelp[T]) OpenWithBaseDir(baseDir string, location string) (*T, error) {
 	// Open URL
 	data, err := y.f.OpenUrlWithBaseDir(baseDir, location)
 	if err != nil {
@@ -71,6 +70,10 @@ func (y YamlHelp[T]) OpenWithBaseDir(baseDir string, location string) (*T, error
 	err = yaml.Unmarshal(data, &out)
 	if err != nil {
 		return nil, err
+	}
+
+	if out != nil {
+		y.Yaml = *out
 	}
 
 	return out, nil
@@ -106,7 +109,7 @@ func (y *YamlHelp[T]) Set(data T) SerializeHelper[T] {
 }
 
 // SetFromB64 parses the YAML data from the specified base64 encoded string.
-func (y YamlHelp[T]) SetFromB64(data string) error {
+func (y *YamlHelp[T]) SetFromB64(data string) error {
 	// Decode base64
 	b64 := make([]byte, base64.StdEncoding.DecodedLen(len(data)))
 	n, err := base64.StdEncoding.Decode(b64, []byte(data))
@@ -137,25 +140,6 @@ func (y YamlHelp[T]) GetBase64() (*Base64Resp, error) {
 	retVal.Signature, retVal.WordList = security.GetSha256AndWordList(retVal.Encoded)
 
 	return retVal, nil
-}
-
-// ParseBase64 parses the YAML data from the specified base64 encoded string.
-func (y YamlHelp[T]) ParseBase64(data string) error {
-	// Decode base64
-	b64 := make([]byte, base64.StdEncoding.DecodedLen(len(data)))
-	n, err := base64.StdEncoding.Decode(b64, []byte(data))
-	if err != nil {
-		return err
-	}
-
-	// Unmarshal YAML into T
-	out := new(T)
-	err = yaml.Unmarshal(b64[:n], &out)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // GetSignature returns the signature and word list of the YAML data stored in the YamlHelper.
