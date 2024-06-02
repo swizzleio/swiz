@@ -36,7 +36,7 @@ const (
 	NoAction
 )
 
-const DefaultCmdTimeoutSec = 10
+const DefaultCmdTimeoutSec = 2
 
 type ExpectResponse struct {
 	Match    ExpectResponseMatching
@@ -153,16 +153,18 @@ func handleStdout(stdout io.ReadCloser, stdin io.WriteCloser, timeoutSec time.Du
 	}
 
 	// Read remaining data if any
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
+	if result.failureMsg == "" {
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				result.failureMsg = fmt.Sprintf("error reading remaining stdout: %s", err)
 				break
 			}
-			result.failureMsg = fmt.Sprintf("error reading remaining stdout: %s", err)
-			break
+			output.WriteString(line)
 		}
-		output.WriteString(line)
 	}
 
 	result.response = output.String()
