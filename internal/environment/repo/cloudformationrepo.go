@@ -403,28 +403,64 @@ func (r *CloudFormationRepo) IsEnvironmentInState(ctx context.Context, envName s
 
 	// Iterate over all stack names and fetch the state
 	for _, stackName := range stacks {
+		stacksNotFound := []string{}
 		input := &cloudformation.DescribeStacksInput{StackName: &stackName}
 		resp, err := r.client.DescribeStacks(ctx, input)
 		if err != nil {
-			return false, stackCompleteList, fmt.Errorf("failed to describe stack %s: %v", stackName, err)
+			var opErr *smithy.GenericAPIError
+			if errors.As(err, &opErr) && opErr.Code == "ValidationError" {
+				stacksNotFound = append(stacksNotFound, stackName)
+			} else {
+				return false, stackCompleteList, fmt.Errorf("failed to describe stack %s: %v", stackName, err)
+			}
 		}
 
-		// Print stack description
-		for _, stack := range resp.Stacks {
-			state := r.cfStatusToState(stack.StackStatus)
-			for _, desiredState := range states {
-				if state == desiredState {
-					stackCompleteList = append(stackCompleteList, *stack.StackName)
-				}
+		if resp == nil {
+			// Check to see if an empty list
+			inState, sErr := r.checkStackState(stackName, "", states, stacksNotFound)
+			if sErr != nil {
+				return false, nil, sErr
 			}
-
-			if state == model.StateFailed {
-				return false, nil, fmt.Errorf("stack %v failed", stackName)
+			if inState {
+				stackCompleteList = append(stackCompleteList, stackName)
+			}
+		} else {
+			// Check stack status
+			for _, stack := range resp.Stacks {
+				inState, sErr := r.checkStackState(stackName, stack.StackStatus, states, stacksNotFound)
+				if sErr != nil {
+					return false, nil, sErr
+				}
+				if inState {
+					stackCompleteList = append(stackCompleteList, stackName)
+				}
 			}
 		}
 	}
 
 	return len(stackCompleteList) == len(stacks), stackCompleteList, nil
+}
+
+func (r CloudFormationRepo) checkStackState(stackName string, status types.StackStatus, states []model.State, stacksNotFound []string) (bool, error) {
+	state := r.cfStatusToState(status)
+	for _, desiredState := range states {
+		if state == desiredState {
+			return true, nil
+		} else if desiredState == model.StateDeleted {
+			for _, stackNotFound := range stacksNotFound {
+				if stackName == stackNotFound {
+					return true, nil
+				}
+			}
+		}
+	}
+
+	if state == model.StateFailed {
+
+		return false, fmt.Errorf("stack %v failed", stackName)
+	}
+
+	return false, nil
 }
 
 func (r *CloudFormationRepo) templateOrUrl(template string) (templateBody *string, templateUrl *string, err error) {
