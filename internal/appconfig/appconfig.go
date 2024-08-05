@@ -93,6 +93,9 @@ func (a *Manage) Load(location string) (*AppConfig, error) {
 	openUrl := fileutil.NewFileUrlHelper(a.appFs)
 
 	cfg.BaseDir, err = openUrl.GetPathFromUrl(location, false)
+
+	a.ser.Set(*cfg)
+
 	if err != nil {
 		return nil, err
 	}
