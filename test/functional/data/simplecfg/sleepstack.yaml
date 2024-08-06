@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Stack that just sleeps
+Parameters:
+  SleepTestTime:
+    Type: Number
+    MaxValue: 120
+    MinValue: 0
+    Default: 10
+  SleepTestFunctionArn:
+    Type: String
+Resources:
+  SleepTest:
+    Type: "Custom::SleepTest"
+    Properties:
+      ServiceToken: !Ref SleepTestFunctionArn
+      SleepTime: !Ref SleepTestTime
