@@ -33,16 +33,15 @@ func (r *EnvironmentRepo) Bootstrap() error {
 
 	// Bootstrap environment from YAML
 	for _, envDef := range r.config.EnvDefinition {
-		yamlData, err := r.serEnv.OpenWithBaseDir(r.config.BaseDir, envDef.EnvDefFile)
-		if err != nil {
-			// There is an error in the environment definition, this should not be fatal
-			errList.Add(err)
-		} else {
+		yamlData, err := r.serEnv.Open(envDef.EnvDefFile)
+		// If there is an error in the environment definition, this should not be fatal. Note, errlist ignores
+		// nil errors
+		errList.Add(err)
 
+		if err == nil {
+			yamlData.EnvDefName = envDef.Name
+			r.envCfg[envDef.Name] = yamlData
 		}
-
-		yamlData.EnvDefName = envDef.Name
-		r.envCfg[envDef.Name] = yamlData
 	}
 
 	return errList.ErrOrNil()
@@ -66,14 +65,21 @@ func (r *EnvironmentRepo) GetEnvironmentByDef(envDef string) (*model.Environment
 
 		// Load stack files
 		for _, stackCfg := range envCfg.StackCfgDef {
-			stack, err := r.serStack.OpenWithBaseDir(r.config.BaseDir, stackCfg.ConfigFile)
+			stack, err := r.serStack.Open(stackCfg.ConfigFile)
 			if err != nil {
 				// TODO: Check if error is due to handlebars incompatibility
 				// Unlike environment, a stack error is fatal
 				return nil, err
 			}
 
-			templateFile, err := r.openUrl.UrlWithBaseDir(r.config.BaseDir, stack.TemplateFile)
+			// Get base path
+			basePath, err := r.openUrl.GetPathFromUrl(stackCfg.ConfigFile, false)
+			if err != nil {
+				return nil, err
+			}
+
+			// Load template from base path
+			templateFile, err := r.openUrl.UrlWithBaseDir(basePath, stack.TemplateFile)
 			if err != nil {
 				return nil, err
 			}
