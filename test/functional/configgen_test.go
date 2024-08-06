@@ -435,7 +435,7 @@ func TestConfigGenerateScan(t *testing.T) {
 			Response: "dev",
 		},
 		{
-			Output:   "Name the enclave that AWS account MC-TRAIN-AWS-PROD will be part of. An enclave refers to production, development, test environments (leave blank to ignore) \n",
+			Output:   "Name the enclave that AWS account MS-TRAIN-AWS-PROD will be part of. An enclave refers to production, development, test environments (leave blank to ignore) \n",
 			Response: "prod",
 		},
 		{
@@ -488,11 +488,11 @@ func TestConfigGenerateScan(t *testing.T) {
 	y.AssertEqual(t, "AWS", "enclave_def[name=dev].providers[name=MS-TRAIN-AWS-DEVELOPMENT].provider_id")
 
 	y.AssertEqual(t, "prod", "enclave_def[name=prod].name")
-	y.AssertEqual(t, "MC-TRAIN-AWS-PROD", "enclave_def[name=prod].default_provider")
+	y.AssertEqual(t, "MS-TRAIN-AWS-PROD", "enclave_def[name=prod].default_provider")
 	y.AssertEqual(t, "Cloudformation", "enclave_def[name=prod].default_iac")
 	y.AssertEqual(t, "example.com", "enclave_def[name=prod].domain_name")
-	y.AssertEqual(t, "MC-TRAIN-AWS-PROD", "enclave_def[name=prod].providers[name=MC-TRAIN-AWS-PROD].name")
-	y.AssertEqual(t, "AWS", "enclave_def[name=prod].providers[name=MC-TRAIN-AWS-PROD].provider_id")
+	y.AssertEqual(t, "MS-TRAIN-AWS-PROD", "enclave_def[name=prod].providers[name=MS-TRAIN-AWS-PROD].name")
+	y.AssertEqual(t, "AWS", "enclave_def[name=prod].providers[name=MS-TRAIN-AWS-PROD].provider_id")
 
 	y.AssertEqual(t, "general", "enclave_def[name=general].name")
 	y.AssertEqual(t, "MS-TRAIN-AWS-GENERAL", "enclave_def[name=general].default_provider")

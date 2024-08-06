@@ -3,5 +3,5 @@ version: 1
 default_env: SleepySleep
 env_def:
   - name: SleepySleep
-    env_def_file: file://~/sleepcf/env-def.yaml
-disabled_commands: []
+    env_def_file: file://~/simplecfg/env-def.yaml
+disabled_commands:
