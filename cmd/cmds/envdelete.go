@@ -58,14 +58,12 @@ func envDeleteCmd(ctx *cli.Context) error {
 		return err
 	}
 
-	stackInfo, err := svc.DeleteEnvironment(ctx.Context, enclave, envDef, envName, dryRun, noOrphanDelete, fastDelete)
+	_, err = svc.DeleteEnvironment(ctx.Context, enclave, envDef, envName, dryRun, noOrphanDelete, fastDelete)
 	if err != nil {
 		return err
 	}
 
-	for _, stack := range stackInfo {
-		cl.Info("Stack: %v [%v] - %v\n", stack.Name, stack.DeployStatus.State, stack.NextAction)
-	}
+	cl.Info("Environment %v deleted\n", envName)
 
 	return nil
 }
