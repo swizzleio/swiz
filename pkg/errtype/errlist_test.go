@@ -43,3 +43,11 @@ func TestErrList_Add(t *testing.T) {
 	assert.Equal(t, 1, len(errList.Errors), "Expected the length of Errors to be 1")
 	assert.Equal(t, err, errList.Errors[0], "Expected the first error to match")
 }
+
+func TestErrList_AddNil(t *testing.T) {
+	errList := &ErrList{}
+	errList.Add(nil)
+
+	assert.Equal(t, 0, len(errList.Errors), "Expected the length of Errors to be 0")
+	assert.Nil(t, errList.ErrOrNil(), "Expected ErrOrNil to return nil")
+}

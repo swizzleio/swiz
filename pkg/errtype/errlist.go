@@ -32,5 +32,7 @@ func (e *ErrList) Add(err error) {
 		e.Errors = []error{}
 	}
 
-	e.Errors = append(e.Errors, err)
+	if err != nil {
+		e.Errors = append(e.Errors, err)
+	}
 }
