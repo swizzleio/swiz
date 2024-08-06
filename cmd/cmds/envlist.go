@@ -1,8 +1,6 @@
 package cmds
 
 import (
-	"fmt"
-
 	"github.com/swizzleio/swiz/internal/environment"
 	"github.com/urfave/cli/v2"
 )
@@ -38,7 +36,7 @@ func envListCmd(ctx *cli.Context) error {
 	}
 
 	for _, env := range envList {
-		fmt.Printf("%v\n", env)
+		cl.Info("%v\n", env)
 	}
 
 	return nil
