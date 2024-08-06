@@ -22,7 +22,7 @@ type AppConfig struct {
 	DefaultEnv       string   `yaml:"default_env"`
 	EnvDefinition    []EnvDef `yaml:"env_def"`
 	DisabledCommands []string `yaml:"disabled_commands"`
-	BaseDir          string   `yaml:"-"`
+	BaseDir          string   `yaml:"-"` // TODO: Repurpose this for the basedir of all the envfiles
 }
 
 type Manage struct {
