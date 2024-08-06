@@ -20,8 +20,8 @@ enclave_def:
       DomainName: example.com
 stack_cfg:
   - name: swizboot
-    config_file: file://bootstrapstack-cfg.yaml
+    config_file: file://./test/data/cloudformation/bootstrapstack-cfg.yaml
     order: 1
   - name: swizsleep
-    config_file: file://sleepstack-cfg.yaml
+    config_file: file://./test/data/cloudformation/sleepstack-cfg.yaml
     order: 2
