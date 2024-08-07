@@ -13,27 +13,23 @@ Resources:
             Principal:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
-      Policies:
-        -
-          PolicyName: SleepTestLambdaRole
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              -
-                Sid: AllowLogging
-                Effect: Allow
-                Action:
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                  - "logs:PutLogEvents"
-                Resource: "*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  SleepTestLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+
   SleepTestFunction:
     Type: AWS::Lambda::Function
     Properties:
       Description: Custom resource that just sleeps
       Handler: index.handler
-      Runtime: python3.9
+      Runtime: python3.12
       Role: !GetAtt SleepTestRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref SleepTestLogGroup
       Timeout: 120
       Code:
         ZipFile: |
