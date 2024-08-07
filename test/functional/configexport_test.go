@@ -23,7 +23,7 @@ func TestConfigExport(t *testing.T) {
 	})
 
 	lines := strings.Split(resp, "\n")
-	assert.Equal(t, "App config: dmVyc2lvbjogMQpkZWZhdWx0X2VudjogU2xlZXB5U2xlZXAKZW52X2RlZjoKICAgIC0gbmFtZTogU2xlZXB5U2xlZXAKICAgICAgZW52X2RlZl9maWxlOiBmaWxlOi8vfi9zaW1wbGVjZmcvZW52LWRlZi55YW1sCmRpc2FibGVkX2NvbW1hbmRzOiBbXQo=", lines[len(lines)-4])
-	assert.Equal(t, "Signature: 79c78e8152139418d5a3837241910b76466f3511cea945841531c69c5c71e9c6", lines[len(lines)-3])
-	assert.Equal(t, "Word list: jawbone retraction orca inventive Dupont barbecue Pluto borderline sterling pandemic Mohawk holiness cranky miracle alone impetus cubic hemisphere chopper Babylon spyglass passenger crusade Jupiter backfield company southward October escape hideaway treadmill responsive", lines[len(lines)-2])
+	assert.Equal(t, "App config: dmVyc2lvbjogMQpkZWZhdWx0X2VudjogU2xlZXB5U2xlZXAKZW52X2RlZjoKICAgIC0gbmFtZTogU2xlZXB5U2xlZXAKICAgICAgZW52X2RlZl9maWxlOiBmaWxlOi8vLi9jZnNpbXBsZWNmZy9lbnYtZGVmLnlhbWwKZGlzYWJsZWRfY29tbWFuZHM6IFtdCmJhc2VfZGlyOiB+L3NyYwo=", lines[len(lines)-4])
+	assert.Equal(t, "Signature: 9fed093a15de3c00c7fc41991d35afe9415f950b20166fd7636f67b9eb7fdaea", lines[len(lines)-3])
+	assert.Equal(t, "Word list: quota unify Algol corrosion backfield telephone cobra adroitness soybean Wilmington cranky nebula Belfast conformist rocker ultimate cranky forever preclude armistice bison bodyguard gremlin stethoscope flatfoot hemisphere freedom proximate trouble integrate surmount undaunted", lines[len(lines)-2])
 }

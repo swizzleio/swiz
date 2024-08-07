@@ -382,7 +382,7 @@ func TestConfigGenerateCustomLocationNoOverwrite(t *testing.T) {
 		},
 	}
 	mocks, _ := util.RunCommandWithMocks(t, cmd, expect, util.DefaultCmdTimeoutSec, true, func(mocks cmds.FixtureMocks) error {
-		return util.CopyDir(mocks.Fs, "./data/simplecfg", "blah")
+		return util.CopyDir(mocks.Fs, "./data/basefs/src/monorepo", "blah")
 	})
 
 	fh := fileutil.NewFileUrlHelper(mocks.Fs)
