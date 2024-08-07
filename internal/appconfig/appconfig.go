@@ -22,7 +22,7 @@ type AppConfig struct {
 	DefaultEnv       string   `yaml:"default_env"`
 	EnvDefinition    []EnvDef `yaml:"env_def"`
 	DisabledCommands []string `yaml:"disabled_commands"`
-	BaseDir          string   `yaml:"-"` // TODO: Repurpose this for the basedir of all the envfiles
+	BaseDir          string   `yaml:"base_dir"`
 }
 
 type Manage struct {
@@ -80,8 +80,10 @@ func (a *Manage) GenFromB64(data string, save bool) error {
 }
 
 func (a *Manage) Load(location string) (*AppConfig, error) {
+	isCustomLoc := true
 	if location == "" {
 		location = DefaultLocation
+		isCustomLoc = false
 	}
 
 	// Open Yaml
@@ -90,14 +92,20 @@ func (a *Manage) Load(location string) (*AppConfig, error) {
 		return nil, err
 	}
 
-	openUrl := fileutil.NewFileUrlHelper(a.appFs)
+	// Check to see if this is a custom location and there is no BaseDir override, if that's the case, assume the base
+	// directory is the location of this file. This handles the case of a monorepo with the app-config.yaml being
+	// custom defined
+	if isCustomLoc &&
+		cfg.BaseDir == "" {
 
-	cfg.BaseDir, err = openUrl.GetPathFromUrl(location, false)
+		openUrl := fileutil.NewFileUrlHelper(a.appFs)
+		cfg.BaseDir, err = openUrl.GetPathFromUrl(location, false)
 
-	a.ser.Set(*cfg)
+		if err != nil {
+			return nil, err
+		}
 
-	if err != nil {
-		return nil, err
+		a.ser.Set(*cfg)
 	}
 
 	a.isLoaded = true
