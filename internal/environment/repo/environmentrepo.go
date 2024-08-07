@@ -73,13 +73,18 @@ func (r *EnvironmentRepo) GetEnvironmentByDef(envDef string) (*model.Environment
 			}
 
 			// Get base path
-			//basePath, err := r.openUrl.GetPathFromUrl(stackCfg.ConfigFile, false)
-			//if err != nil {
-			//	return nil, err
-			//}
+			fullConfigPath, err := r.openUrl.UrlWithBaseDir(r.config.BaseDir, stackCfg.ConfigFile)
+			if err != nil {
+				return nil, err
+			}
+
+			basePath, err := r.openUrl.GetPathFromUrl(fullConfigPath, false)
+			if err != nil {
+				return nil, err
+			}
 
 			// Load template from base path
-			templateFile, err := r.openUrl.UrlWithBaseDir(r.config.BaseDir, stack.TemplateFile)
+			templateFile, err := r.openUrl.UrlWithBaseDir(basePath, stack.TemplateFile)
 			if err != nil {
 				return nil, err
 			}
