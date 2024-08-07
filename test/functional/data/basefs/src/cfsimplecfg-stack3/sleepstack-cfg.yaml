@@ -1,0 +1,8 @@
+---
+version: 1
+template_file: file://sleepstack.yaml
+params:
+  SleepTestTime: 10
+  SleepTestFunctionArn: "{{swizboot.SleepTestFunctionArn}}"
+  LogLevel: "{{LogLevel}}"
+  VpcId: "{{VpcId}}"
