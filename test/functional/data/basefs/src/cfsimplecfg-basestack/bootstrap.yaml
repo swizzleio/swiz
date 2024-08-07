@@ -19,7 +19,6 @@ Resources:
   SleepTestLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${SleepTestFunction}'
       RetentionInDays: 1
 
   SleepTestFunction:
@@ -27,7 +26,7 @@ Resources:
     Properties:
       Description: Custom resource that just sleeps
       Handler: index.handler
-      Runtime: python3.9
+      Runtime: python3.12
       Role: !GetAtt SleepTestRole.Arn
       LoggingConfig:
         LogGroup: !Ref SleepTestLogGroup

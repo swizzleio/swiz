@@ -22,6 +22,12 @@ stack_cfg:
   - name: swizboot
     config_file: file://cfsimplecfg-basestack/bootstrapstack-cfg.yaml
     order: 1
-  - name: swizsleep
+  - name: swizstack1
     config_file: file://cfsimplecfg-stack1/sleepstack-cfg.yaml
+    order: 2
+  - name: swizstack2
+    config_file: file://cfsimplecfg-stack2/sleepstack-cfg.yaml
+    order: 2
+  - name: swizstack3
+    config_file: file://cfsimplecfg-stack3/sleepstack-cfg.yaml
     order: 2
