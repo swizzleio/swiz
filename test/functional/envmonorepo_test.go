@@ -47,30 +47,32 @@ func (*EnvMonoRepoIntegrationSuite) TearDownSuite() {
 // It's very easy for an E2E scenario to completely turn into a big ball of mud. The answer here may be more of a framework
 // that allows for E2E tests in a single test but this may also introduce long test times.
 func (s *EnvMonoRepoIntegrationSuite) TestEnvAADeploy() {
-	cmd := []string{"swiz", "--appconfig", "file://~/src/monorepo/app-config.yaml", "env", "deploy", "--name", "AwesomeEnv"}
+	cmd := []string{"swiz", "--appconfig", "file://~/src/monorepo/app-config.yaml", "env", "deploy", "--name", "AwesomeMonoRepoEnv"}
 
 	_, resp := util.RunCommandWithMocks(s.T(), cmd, nil, 300, false, bootstrapEnvIntegration)
 
 	//fmt.Println(resp)
 
 	lines := strings.Split(resp, "\n")
-	assert.Equal(s.T(), "Stack: AwesomeEnv-swizboot [Creating] - Create", lines[0])
-	assert.Equal(s.T(), "Stack: AwesomeEnv-swizsleep [Creating] - Create", lines[1])
+	assert.Equal(s.T(), "Stack: AwesomeMonoRepoEnv-swizboot [Creating] - Create", lines[0])
+	assert.Equal(s.T(), "Stack: AwesomeMonoRepoEnv-swizsleep [Creating] - Create", lines[1])
 }
 
 func (s *EnvMonoRepoIntegrationSuite) TestEnvABInfo() {
-	cmd := []string{"swiz", "--appconfig", "file://~/src/monorepo/app-config.yaml", "env", "info", "--name", "AwesomeEnv"}
+	cmd := []string{"swiz", "--appconfig", "file://~/src/monorepo/app-config.yaml", "env", "info", "--name", "AwesomeMonoRepoEnv"}
 
 	_, resp := util.RunCommandWithMocks(s.T(), cmd, nil, 300, false, bootstrapEnvIntegration)
 
 	fmt.Println(resp)
 
 	lines := strings.Split(resp, "\n")
-	assert.Equal(s.T(), "Name: AwesomeEnv", lines[0])
-	assert.Equal(s.T(), "Status: {AwesomeEnv Complete Complete }", lines[1])
+	assert.Equal(s.T(), "Name: AwesomeMonoRepoEnv", lines[0])
+	assert.Equal(s.T(), "Status: {AwesomeMonoRepoEnv Complete Complete }", lines[1])
 	assert.Equal(s.T(), "Stacks [Status]:", lines[2])
-	assert.Equal(s.T(), "  AwesomeEnv-swizsleep [Complete]", lines[3])
-	assert.Equal(s.T(), "  AwesomeEnv-swizboot [Complete]", lines[4])
+	assert.Equal(s.T(), "  AwesomeMonoRepoEnv-swizsleep [Complete]", lines[3])
+	assert.Equal(s.T(), "  AwesomeMonoRepoEnv-swizboot [Complete]", lines[4])
+	assert.Equal(s.T(), "  AwesomeMonoRepoEnv-swizsleep [Complete]", lines[3])
+	assert.Equal(s.T(), "  AwesomeMonoRepoEnv-swizboot [Complete]", lines[4])
 }
 
 func (s *EnvMonoRepoIntegrationSuite) TestEnvACList() {
@@ -81,16 +83,16 @@ func (s *EnvMonoRepoIntegrationSuite) TestEnvACList() {
 	fmt.Println(resp)
 
 	lines := strings.Split(resp, "\n")
-	assert.Equal(s.T(), "AwesomeEnv", lines[0])
+	assert.Equal(s.T(), "AwesomeMonoRepoEnv", lines[0])
 }
 
 func (s *EnvMonoRepoIntegrationSuite) TestEnvADDelete() {
-	cmd := []string{"swiz", "--appconfig", "file://~/src/monorepo/app-config.yaml", "env", "delete", "--name", "AwesomeEnv"}
+	cmd := []string{"swiz", "--appconfig", "file://~/src/monorepo/app-config.yaml", "env", "delete", "--name", "AwesomeMonoRepoEnv"}
 
 	_, resp := util.RunCommandWithMocks(s.T(), cmd, nil, 300, false, bootstrapEnvIntegration)
 
 	fmt.Println(resp)
 
 	lines := strings.Split(resp, "\n")
-	assert.Equal(s.T(), "Environment AwesomeEnv deleted", lines[0])
+	assert.Equal(s.T(), "Environment AwesomeMonoRepoEnv deleted", lines[0])
 }
